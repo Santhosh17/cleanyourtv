@@ -10,16 +10,17 @@ import android.net.Uri;
 /**
  * The current reading for a home screen to show (content://io.github.sumyabazar1.weather.home/now, and /now2 for the
  * launcher's second weather city): one row of city, temperature, feels-like, unit, sky words, the WMO code and day
- * flag (for an icon), today's high and low, and the next five days as "weekday,code,high,low;..." (weekday 1 =
- * Monday) - or no row before a city is picked. Read-only.
+ * flag (for an icon), today's high and low, the next five days as "weekday,code,high,low;..." (weekday 1 =
+ * Monday), the US AQI (-1 unknown), today's sunrise and sunset ("HH:mm", local to the place) and today's WMO code -
+ * or no row before a city is picked. Read-only.
  *
  * It fetches only when asked and at most every 30 minutes (Forecast.REFRESH_MS), from the asking app's background
  * thread, so the add-on still runs no service. The query "cached" never goes online (for a settings summary).
  */
 public final class HomeProvider extends ContentProvider {
-    private static final String[] COLUMNS = {"city", "temp", "feels", "unit", "sky", "code", "day", "high", "low", "days"};
+    private static final String[] COLUMNS = {"city", "temp", "feels", "unit", "sky", "code", "day", "high", "low", "days", "aqi", "sunrise", "sunset", "todaycode"};
     /** Bumped when the cached fields change, so an older cache is fetched again. */
-    private static final int CACHE_VERSION = 3;
+    private static final int CACHE_VERSION = 4;
 
     @Override public boolean onCreate() {
         return true;
@@ -53,6 +54,8 @@ public final class HomeProvider extends ContentProvider {
                         .putLong("high", Double.doubleToRawLongBits(r.todayMaxC))
                         .putLong("low", Double.doubleToRawLongBits(r.todayMinC))
                         .putString("days", days.toString())
+                        .putInt("aqi", r.aqi).putString("sunrise", r.sunrise).putString("sunset", r.sunset)
+                        .putInt("todaycode", r.todayCode)
                         .putLong("temp", Double.doubleToRawLongBits(r.tempC))
                         .putLong("feels", Double.doubleToRawLongBits(r.feelsC))
                         .putInt("code", r.code).putBoolean("day", r.day).commit();
@@ -61,7 +64,7 @@ public final class HomeProvider extends ContentProvider {
             }
         }
         if (!key.equals(cache.getString("for", ""))) {
-            out.addRow(new Object[]{city, null, null, null, null, null, null, null, null, null});
+            out.addRow(new Object[]{city, null, null, null, null, null, null, null, null, null, null, null, null, null});
             return out;
         }
         boolean f = getContext().getSharedPreferences("options", 0).getBoolean("fahrenheit",
@@ -84,7 +87,8 @@ public final class HomeProvider extends ContentProvider {
         out.addRow(new Object[]{city, Forecast.degrees(temp, f), Forecast.degrees(feels, f), f ? "F" : "C",
                 getContext().getString(Forecast.sky(code, day)), code, day ? 1 : 0,
                 Double.isNaN(high) ? null : Forecast.degrees(high, f), Double.isNaN(low) ? null : Forecast.degrees(low, f),
-                days.toString()});
+                days.toString(), cache.getInt("aqi", -1), cache.getString("sunrise", ""),
+                cache.getString("sunset", ""), cache.getInt("todaycode", -1)});
         return out;
     }
 

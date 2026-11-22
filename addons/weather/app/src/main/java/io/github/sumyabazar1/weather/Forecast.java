@@ -66,6 +66,9 @@ final class Forecast {
         final int windKmh;
         /** Today's high and low (NaN if not read), for a home screen card. */
         double todayMaxC = Double.NaN, todayMinC = Double.NaN;
+        /** Today's sunrise and sunset as local "HH:mm" at the place ("" if not read), and today's WMO code (-1). */
+        String sunrise = "", sunset = "";
+        int todayCode = -1;
 
         Report(double tempC, double feelsC, int code, boolean day, List<Day> days, int aqi, int humidity, int windKmh) {
             this.tempC = tempC;
@@ -126,7 +129,7 @@ final class Forecast {
         // and Google, had snow falling.
         JSONObject reply = get("https://api.open-meteo.com/v1/forecast?" + where + "&models=icon_seamless"
                 + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,is_day,wind_speed_10m"
-                + "&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days="
+                + "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days="
                 + (forecastDays(days) + 1));
         JSONObject current = reply.getJSONObject("current");
         double temp = current.getDouble("temperature_2m");
@@ -141,6 +144,12 @@ final class Forecast {
             report.todayMaxC = daily.getJSONArray("temperature_2m_max").getDouble(0);
             report.todayMinC = daily.getJSONArray("temperature_2m_min").getDouble(0);
         }
+        // "2026-11-22T06:18": the place's own local time
+        JSONArray rise = daily.optJSONArray("sunrise"), set = daily.optJSONArray("sunset");
+        if (rise != null && !rise.isNull(0)) report.sunrise = rise.getString(0).substring(11, 16);
+        if (set != null && !set.isNull(0)) report.sunset = set.getString(0).substring(11, 16);
+        JSONArray codes = daily.getJSONArray("weather_code");
+        if (!codes.isNull(0)) report.todayCode = codes.getInt(0);
         return report;
     }
 

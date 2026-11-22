@@ -22,6 +22,10 @@ final class WeatherNow {
     /** WMO weather code and day (false at night), for the icon. */
     final int code;
     final boolean day;
+    /** US AQI, null when unknown; today's sunrise and sunset, local "HH:mm" or null; today's WMO code, -1 unknown. */
+    final Integer aqi;
+    final String sunrise, sunset;
+    final int todayCode;
     /** The next days, tomorrow first: {weekday 1 = Monday, WMO code, high, low}. */
     final java.util.List<int[]> days = new java.util.ArrayList<>();
 
@@ -32,6 +36,11 @@ final class WeatherNow {
         high = integer(c, "high");
         low = integer(c, "low");
         sky = string(c, "sky");
+        Integer aqiOrNull = integer(c, "aqi"), today = integer(c, "todaycode");
+        aqi = aqiOrNull == null || aqiOrNull < 0 ? null : aqiOrNull;
+        sunrise = empty(string(c, "sunrise"));
+        sunset = empty(string(c, "sunset"));
+        todayCode = today == null ? -1 : today;
         Integer codeOrNull = integer(c, "code"), dayOrNull = integer(c, "day");
         code = codeOrNull == null ? 3 : codeOrNull;
         day = dayOrNull == null || dayOrNull == 1;
@@ -53,6 +62,32 @@ final class WeatherNow {
     private static String string(Cursor c, String column) {
         int i = c.getColumnIndex(column);
         return i < 0 || c.isNull(i) ? null : c.getString(i);
+    }
+
+    private static String empty(String s) {
+        return s == null || s.isEmpty() ? null : s;
+    }
+
+    private static boolean rain(int code) {
+        return (code >= 51 && code <= 67) || (code >= 80 && code <= 82);
+    }
+
+    /** "☔ Rain today", "⛈ Storms tomorrow"..., or null: storms first, then rain, today before tomorrow. */
+    String warning() {
+        int tomorrow = days.isEmpty() ? -1 : days.get(0)[1];
+        if (todayCode >= 95) return "\u26C8\uFE0F Storms today";
+        if (rain(todayCode)) return "\u2614 Rain today";
+        if (tomorrow >= 95) return "\u26C8\uFE0F Storms tomorrow";
+        if (rain(tomorrow)) return "\u2614 Rain tomorrow";
+        return null;
+    }
+
+    /** US AQI band 0-5: good, moderate, unhealthy for sensitive groups, unhealthy, very unhealthy, hazardous. */
+    static int aqiBand(int aqi) {
+        int[] max = {50, 100, 150, 200, 300};
+        int band = 0;
+        while (band < max.length && aqi > max[band]) band++;
+        return band;
     }
 
     private static Integer integer(Cursor c, String column) {

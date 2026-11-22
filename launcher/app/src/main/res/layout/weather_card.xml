@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- One weather card above the dock, in the shape of a medium weather widget: the city and temperature left, the
-     sky and today's high and low right, the next five days under a line. Filled in MainActivity (fillCard). -->
+     sky and today's high and low right, air quality and sun times, a rain warning, the next five days under a line. Filled in MainActivity (fillCard). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="260dp"
     android:layout_height="wrap_content"
@@ -79,6 +79,54 @@
                 android:fontFamily="@string/font_medium" />
         </LinearLayout>
     </LinearLayout>
+
+    <!-- Air quality pill (coloured by US AQI band) and today's sunrise and sunset. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/cardAqi"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:singleLine="true"
+            android:textSize="11sp"
+            android:fontFamily="@string/font_medium"
+            android:visibility="gone" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/cardSun"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:textColor="#CCFFFFFF"
+            android:textSize="11sp"
+            android:fontFamily="@string/font_medium" />
+    </LinearLayout>
+
+    <!-- Rain or storms today or tomorrow; gone otherwise. -->
+    <TextView
+        android:id="@+id/cardWarning"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:singleLine="true"
+        android:textColor="#FF9FD3FF"
+        android:textSize="12sp"
+        android:fontFamily="@string/font_medium"
+        android:visibility="gone" />
 
     <View
         android:layout_width="match_parent"

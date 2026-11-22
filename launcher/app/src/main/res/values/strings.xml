@@ -46,6 +46,16 @@
     <string name="weather_degrees" translatable="false">%1$d°</string>
     <string name="weather_high_low" translatable="false">H:%1$d° L:%2$d°</string>
     <string name="weather_feels" translatable="false">Feels %1$d°</string>
+    <string name="weather_aqi" translatable="false">AQI %1$d · %2$s</string>
+    <string name="weather_sun" translatable="false">🌅 %1$s   🌇 %2$s</string>
+    <string-array name="aqi_short" translatable="false">
+        <item>Good</item>
+        <item>Moderate</item>
+        <item>Sensitive</item>
+        <item>Unhealthy</item>
+        <item>Very unhealthy</item>
+        <item>Hazardous</item>
+    </string-array>
     <string name="settings_section_weather" translatable="false">Weather</string>
     <string name="weather_city_label" translatable="false">Weather city</string>
     <string name="weather_city_none" translatable="false">Not set</string>

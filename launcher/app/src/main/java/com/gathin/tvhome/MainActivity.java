@@ -2228,6 +2228,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         TextView highLow = card.findViewById(R.id.cardHighLow);
         highLow.setText(w.high == null || w.low == null ? getString(R.string.weather_feels, w.feels)
                 : getString(R.string.weather_high_low, w.high, w.low));
+        TextView aqi = card.findViewById(R.id.cardAqi);
+        aqi.setVisibility(w.aqi == null ? View.GONE : View.VISIBLE);
+        if (w.aqi != null) {
+            int band = WeatherNow.aqiBand(w.aqi);
+            aqi.setText(getString(R.string.weather_aqi, w.aqi, getResources().getStringArray(R.array.aqi_short)[band]));
+            GradientDrawable pill = new GradientDrawable();
+            pill.setCornerRadius(10 * density);
+            pill.setColor(AQI_COLOURS[band]);
+            aqi.setBackground(pill);
+            aqi.setTextColor(band == 1 ? 0xFF1A1A1A : 0xFFFFFFFF);   // dark on the yellow band
+        }
+        ((TextView) card.findViewById(R.id.cardSun)).setText(w.sunrise == null || w.sunset == null ? ""
+                : getString(R.string.weather_sun, clockText(w.sunrise), clockText(w.sunset)));
+        String warning = w.warning();
+        TextView warn = card.findViewById(R.id.cardWarning);
+        warn.setVisibility(warning == null ? View.INVISIBLE : View.VISIBLE);   // keeps both cards one height
+        warn.setText(warning);
+        card.setBackgroundResource(warning == null ? R.drawable.weather_card_bg : R.drawable.weather_card_bg_warn);
         LinearLayout days = card.findViewById(R.id.cardDays);
         days.removeAllViews();
         for (int[] d : w.days) {   // weekday, code, high, low
@@ -2242,6 +2260,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             days.addView(col, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         }
         return true;
+    }
+
+    /** US AQI band colours, as the Weather app's own pill (good to hazardous). */
+    private static final int[] AQI_COLOURS = {0xE643A047, 0xE6FBC02D, 0xE6FB8C00, 0xE6E53935, 0xE68E24AA, 0xE67E0023};
+
+    /** "06:18" as the TV's clock shows times: "06:18", or "6:18" without AM/PM in 12-hour mode. */
+    private String clockText(String hhmm) {
+        if (android.text.format.DateFormat.is24HourFormat(this)) return hhmm;
+        int h = Integer.parseInt(hhmm.substring(0, 2));
+        return (h % 12 == 0 ? 12 : h % 12) + hhmm.substring(2);
     }
 
     private TextView dayText(String text, int sp, int color) {
@@ -2897,6 +2925,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 WifiManager wm = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
                 WifiInfo info = wm != null ? wm.getConnectionInfo() : null;
                 String ssid = info != null ? info.getSSID() : null;
+                // Signal bars: weak lights the dot, medium the middle arc too, strong all three.
+                if (info != null) icon = WIFI_BARS[WifiManager.calculateSignalLevel(info.getRssi(), WIFI_BARS.length)];
                 if (ssid != null) {
                     ssid = ssid.replace("\"", "").trim();
                     if (!ssid.isEmpty() && !ssid.contains("unknown") && !ssid.equals("0x")) text = ssid;
@@ -3098,6 +3128,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             open(systemIntent(Settings.ACTION_SETTINGS));
         }
     }
+
+    private static final int[] WIFI_BARS = {R.drawable.ic_wifi_1, R.drawable.ic_wifi_2, R.drawable.ic_wifi_3};
 
     private Intent systemIntent(String standardAction) {
         return SystemSettings.intent(this, standardAction);
