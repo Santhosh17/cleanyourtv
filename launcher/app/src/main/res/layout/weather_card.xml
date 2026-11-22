@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- One weather card above the dock, in the shape of a medium weather widget: the city and temperature left, the
-     sky and today's high and low right, air quality and sun times, a rain warning, the next five days under a line. Filled in MainActivity (fillCard). -->
+     sky and today's high and low right, air quality and sun times, rain chance and amount, the next 2 hours, the reading time, the next five days under a line. Filled in MainActivity (fillCard). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="260dp"
     android:layout_height="wrap_content"
@@ -8,8 +8,8 @@
     android:background="@drawable/weather_card_bg"
     android:paddingStart="18dp"
     android:paddingEnd="18dp"
-    android:paddingTop="14dp"
-    android:paddingBottom="12dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="10dp"
     android:visibility="gone">
 
     <LinearLayout
@@ -77,6 +77,17 @@
                 android:textColor="#B3FFFFFF"
                 android:textSize="12sp"
                 android:fontFamily="@string/font_medium" />
+
+            <!-- Today's rain chance and amount. -->
+            <TextView
+                android:id="@+id/cardRain"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textColor="#FFA8D8FF"
+                android:textSize="12sp"
+                android:fontFamily="@string/font_medium"
+                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 
@@ -116,23 +127,48 @@
             android:fontFamily="@string/font_medium" />
     </LinearLayout>
 
-    <!-- Rain or storms today or tomorrow; gone otherwise. -->
-    <TextView
-        android:id="@+id/cardWarning"
+    <!-- The next 2 hours in words (or the today/tomorrow warning), when the reading was taken, and 15-minute bars. -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:singleLine="true"
-        android:textColor="#FF9FD3FF"
-        android:textSize="12sp"
-        android:fontFamily="@string/font_medium"
-        android:visibility="gone" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/cardWarning"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textColor="#FFFFFFFF"
+            android:textSize="12sp"
+            android:fontFamily="@string/font_medium" />
+
+        <TextView
+            android:id="@+id/cardUpdated"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:textColor="#99FFFFFF"
+            android:textSize="10sp"
+            android:fontFamily="@string/font_medium" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/cardBars"
+        android:layout_width="match_parent"
+        android:layout_height="10dp"
+        android:layout_marginTop="3dp"
+        android:gravity="bottom"
+        android:orientation="horizontal" />
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginTop="10dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
         android:background="#2EFFFFFF" />
 
     <!-- The next five days: a column each (weekday, icon, high, low), added in code. -->

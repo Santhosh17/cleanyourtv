@@ -352,6 +352,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         @Override
         public void onLost(@NonNull Network network) {
             handler.post(MainActivity.this::updateWifiLabel);
+            if (network.equals(countryNetwork)) countryNetwork = null;
         }
 
         /** wifi_status_warnings follows validation; signal-strength updates also land here, so skip those. */
@@ -360,6 +361,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         @Override
         public void onCapabilitiesChanged(@NonNull Network network, @NonNull NetworkCapabilities caps) {
             boolean validated = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+            // Another network now carries the internet (a different Wi-Fi, Ethernet): its country may differ.
+            if (validated) countryNetworkChanged(network);
             // open_on_start_network_wait: the boot's app opens on the first validated network.
             if (validated && startPending != null) handler.post(openWhenOnline);
             if (validated == lastValidated) return;
@@ -384,11 +387,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         @Override
         public void onAvailable(@NonNull Network network) {
             handler.post(MainActivity.this::updateWifiLabel);
+            countryNetworkChanged(network);   // traffic now leaves through the VPN's country
         }
 
         @Override
         public void onLost(@NonNull Network network) {
             handler.post(MainActivity.this::updateWifiLabel);
+            if (network.equals(countryNetwork)) countryNetwork = null;
+            if (showStats) handler.post(() -> refreshCountry(true));   // back to the Wi-Fi's own country
         }
     };
     private final IntentFilter packageFilter = new IntentFilter();
@@ -496,6 +502,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName = findViewById(R.id.heroName);
         hero = findViewById(R.id.hero);
         weatherNow = findViewById(R.id.weatherNow);
+        weatherAnimation = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
+                .getBoolean(LauncherSettingsActivity.WEATHER_ANIMATION_KEY, true);
         weatherCard1 = findViewById(R.id.weatherCard1);
         weatherCard2 = findViewById(R.id.weatherCard2);
         // The hero is now a group (name, and the cinematic lines): without this every fade of the default
@@ -1078,6 +1086,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (openLiveTvAfterBoot()) return;
         updateGreeting();
         refreshWeather();
+        if (showStats) refreshCountry(false);
         // Back from an app opened from its tile, focus is still on that tile, so the cinematic "Last opened" line kept
         // the time from before this launch ("2 days ago" right after opening it). Refresh it.
         if (cinematic && heroMeta != null && lastFocused >= 0 && lastFocused < adapter.appCount()) updateHeroMeta(lastFocused);
@@ -1157,6 +1166,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             heroShown = false;
             hero.setAlpha(0f);
             weatherNow.setAlpha(0f);
+            animateWeather(false);
             ambient.setAlpha(0f);
             heroArt.animate().cancel();
             heroArt.setAlpha(0f);
@@ -1243,6 +1253,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onPause() {
         super.onPause();
         resumed = false;
+        animateWeather(false);   // nothing animates behind an app
         // No UP reaches a paused Home, so a vendor-key hold it saw go down would still open its app later.
         // Only Home's own share is dropped: a key service that saw the same DOWN keeps its hold.
         RemoteKeys.release(this);
@@ -2145,6 +2156,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         hero.setAlpha(0f);
         weatherNow.animate().cancel();
         weatherNow.setAlpha(0f);
+        animateWeather(false);
         heroArt.animate().cancel();
         heroArt.setAlpha(0f);
         heroShown = false;
@@ -2188,6 +2200,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         weatherNow.animate().cancel();
         weatherNow.setAlpha(0f);
+        animateWeather(false);
     }
 
     /**
@@ -2241,14 +2254,35 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         ((TextView) card.findViewById(R.id.cardSun)).setText(w.sunrise == null || w.sunset == null ? ""
                 : getString(R.string.weather_sun, clockText(w.sunrise), clockText(w.sunset)));
-        String warning = w.warning();
-        TextView warn = card.findViewById(R.id.cardWarning);
-        warn.setVisibility(warning == null ? View.INVISIBLE : View.VISIBLE);   // keeps both cards one height
-        warn.setText(warning);
-        card.setBackgroundResource(warning == null ? R.drawable.weather_card_bg : R.drawable.weather_card_bg_warn);
+        TextView rain = card.findViewById(R.id.cardRain);
+        rain.setVisibility(w.rainChance < 0 ? View.GONE : View.VISIBLE);
+        rain.setText("\uD83D\uDCA7 " + w.rainChance + "%" + (w.rainMm < 0.05 ? ""
+                : " \u00B7 " + (w.rainMm < 10 ? String.format(Locale.getDefault(), "%.1f", w.rainMm)
+                : String.valueOf(Math.round(w.rainMm))) + " mm"));
+        ((TextView) card.findViewById(R.id.cardWarning)).setText(w.timeline());
+        ((TextView) card.findViewById(R.id.cardUpdated)).setText(w.updated == 0 ? ""
+                : "\u21BB " + android.text.format.DateFormat.getTimeFormat(this).format(new java.util.Date(w.updated)));
+        LinearLayout bars = card.findViewById(R.id.cardBars);
+        bars.removeAllViews();
+        for (double mm : w.next2h) {   // 15 minutes each: light blue and taller with more rain, a dim line when dry
+            View bar = new View(this);
+            GradientDrawable shape = new GradientDrawable();
+            shape.setCornerRadius(2 * density);
+            shape.setColor(WeatherNow.wet(mm) ? 0xFFA8D8FF : 0x33FFFFFF);
+            bar.setBackground(shape);
+            float h = WeatherNow.wet(mm) ? 4 + 8 * (float) Math.min(1, mm / 2) : 2;
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, Math.round(h * density), 1f);
+            lp.setMarginEnd(Math.round(3 * density));
+            bars.addView(bar, lp);
+        }
+        Drawable old = card.getBackground();
+        if (old instanceof WeatherSkyDrawable) ((WeatherSkyDrawable) old).stop();
+        WeatherSkyDrawable sky = new WeatherSkyDrawable(w.code, w.day, density, weatherAnimation);
+        card.setBackground(sky);
+        if (heroShown && !stopped) sky.start();
         LinearLayout days = card.findViewById(R.id.cardDays);
         days.removeAllViews();
-        for (int[] d : w.days) {   // weekday, code, high, low
+        for (int[] d : w.days) {   // weekday, code, high, low, rain chance
             LinearLayout col = new LinearLayout(this);
             col.setOrientation(LinearLayout.VERTICAL);
             col.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -2257,6 +2291,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             col.addView(dayText(WeatherNow.icon(d[1], true), 15, 0xFFFFFFFF));
             col.addView(dayText(getString(R.string.weather_degrees, d[2]), 13, 0xFFFFFFFF));
             col.addView(dayText(getString(R.string.weather_degrees, d[3]), 11, 0x99FFFFFF));
+            col.addView(dayText(d[4] >= 20 ? d[4] + "%" : " ", 10, 0xFFA8D8FF));   // rain chance, when worth noting
             days.addView(col, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         }
         return true;
@@ -2308,11 +2343,27 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ampm.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> align.run());
     }
 
-    /** Bottom level with the dock app's name, and shown with it ({@code show}). */
+    /** Just above the dock (lower than the dock app's name, to keep clear of the pills), shown with it ({@code show}). */
     private void placeWeather(boolean show) {
         if (!hasWeather || lastDockTop < 0) return;
-        weatherNow.setY(lastDockTop - 14 * density - 26 * density - weatherNow.getHeight());
-        if (show) weatherNow.setAlpha(1f);
+        weatherNow.setY(lastDockTop - 26 * density - weatherNow.getHeight());
+        if (show) {
+            weatherNow.setAlpha(1f);
+            animateWeather(true);
+        }
+    }
+
+    /** weather_animation (Launcher settings): the cards' weather effects, run only while the cards are on screen. */
+    private boolean weatherAnimation = true;
+
+    private void animateWeather(boolean on) {
+        for (View card : new View[]{weatherCard1, weatherCard2}) {
+            if (card != null && card.getBackground() instanceof WeatherSkyDrawable) {
+                WeatherSkyDrawable sky = (WeatherSkyDrawable) card.getBackground();
+                if (on && card.getVisibility() == View.VISIBLE) sky.start();
+                else sky.stop();
+            }
+        }
     }
 
     private void hideGlass() {
@@ -2349,7 +2400,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (statsBg != bg) return;
                 String line = readStatsLine();
                 handler.post(() -> {
-                    if (showStats && stats != null && statsBg == bg) stats.setText(line);
+                    if (showStats && stats != null && statsBg == bg) stats.setText(fullColourEmoji(line));
                 });
                 if (statsBg == bg) bg.postDelayed(this, getResources().getInteger(R.integer.stats_interval_ms));
             }
@@ -2394,7 +2445,66 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!free.isEmpty()) appendStat(line, getString(R.string.stats_storage, free));
         String net = netSpeed();
         if (net != null) appendStat(line, net);
-        return StatsText.forLocale(line.toString(), getResources().getConfiguration().getLocales().get(0));
+        // The line's capitals; the emoji are left as they are.
+        return StatsText.forLocale(line.toString().toUpperCase(Locale.getDefault()),
+                getResources().getConfiguration().getLocales().get(0));
+    }
+
+    /** The flag of the public IP's country after the speeds ("" unknown), and when it was last asked for. */
+    private volatile String netFlag = "";
+    private long countryReadAt;
+
+    /** The network that had internet when the country was last looked up; a different one means look again. */
+    private volatile Network countryNetwork;
+    private int countryRequest;
+
+    /**
+     * Asks the Weather add-on for the public IP's country, off the main thread: at most once a minute, or at once and
+     * bypassing its memory after a network change ({@code now}): another Wi-Fi, Ethernet, a VPN up or down. Right
+     * after a change the new route may not carry traffic yet, so an empty answer is asked again after 5 and 15 s.
+     */
+    private void refreshCountry(boolean now) {
+        long t = SystemClock.elapsedRealtime();
+        if (!now && countryReadAt != 0 && t - countryReadAt < MINUTE_MS) return;
+        countryReadAt = t;
+        int request = ++countryRequest;
+        new Thread(() -> {
+            for (long wait : new long[]{0, 5000, 15000}) {
+                try {
+                    Thread.sleep(wait);
+                } catch (InterruptedException e) {
+                    return;
+                }
+                if (request != countryRequest) return;   // a newer change asked again
+                String code = WeatherNow.country(getApplicationContext(), now);
+                netFlag = WeatherNow.flag(code);
+                if (!code.isEmpty() || !now) return;
+            }
+        }, "country").start();
+    }
+
+    /** A network change worth a new country lookup: the network with internet is not the one last looked up on. */
+    private synchronized void countryNetworkChanged(Network network) {   // two callbacks can report one change at once
+        if (!showStats || network.equals(countryNetwork)) return;
+        countryNetwork = network;
+        handler.post(() -> refreshCountry(true));
+    }
+
+    /**
+     * The stats line's text is a dimmed white, and that transparency fades colour emoji too: draw the emoji (⚡, 🗄️,
+     * the flag) in opaque white so they keep their own colours, and leave the text and arrows dim.
+     */
+    private static CharSequence fullColourEmoji(String line) {
+        android.text.SpannableString out = new android.text.SpannableString(line);
+        for (int i = 0; i < line.length(); ) {
+            int cp = line.codePointAt(i), n = Character.charCount(cp);
+            if (cp >= 0x1F000 || cp == 0x26A1 || cp == 0xFE0F) {
+                out.setSpan(new android.text.style.ForegroundColorSpan(0xFFFFFFFF), i, i + n,
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            i += n;
+        }
+        return out;
     }
 
     /** Totals at the last stats read, for the speed since then; netAtPrev 0 = no sample yet. */
@@ -2413,6 +2523,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             double secs = (at - netAtPrev) / 1000.0;
             out = getString(R.string.stats_net, speed(Math.max(0, rx - netRxPrev) / secs),
                     speed(Math.max(0, tx - netTxPrev) / secs));
+            if (!netFlag.isEmpty()) out = netFlag + "  " + out;   // the country first, then its speeds
         }
         netRxPrev = rx;
         netTxPrev = tx;

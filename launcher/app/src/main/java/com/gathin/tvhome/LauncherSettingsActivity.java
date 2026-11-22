@@ -37,6 +37,8 @@ public final class LauncherSettingsActivity extends Activity {
     }
 
     static final String EXTRA_REORDER = "com.gathin.tvhome.extra.REORDER_FROM_SETTINGS";
+    /** The weather cards' animated effects (rain, snow, clouds, stars...); on unless switched off here. */
+    static final String WEATHER_ANIMATION_KEY = "weather_animation";
     private static final int[] DOCK_OPACITIES = {100, 70, 50, 30};
     private static final String[] CLOCK_FORMATS = {"system", "12", "24"};
 
@@ -140,6 +142,13 @@ public final class LauncherSettingsActivity extends Activity {
                     choices.edit().putBoolean("animations", animations)
                             .putBoolean("advanced_effects", advancedEffects).apply();
                 });
+        if (WeatherNow.installed(this)) {
+            Item weatherFx = choice(R.drawable.ic_globe, R.string.weather_animation_label,
+                    labels(getString(R.string.on), getString(R.string.off)),
+                    () -> choices.getBoolean(WEATHER_ANIMATION_KEY, true) ? 0 : 1,
+                    i -> choices.edit().putBoolean(WEATHER_ANIMATION_KEY, i == 0).apply());
+            weatherFx.description = getString(R.string.weather_animation_description);
+        }
         Item advanced = choice(R.drawable.ic_motion, R.string.advanced_effects,
                 labels(getString(R.string.on), getString(R.string.off)), () -> advancedEffects ? 0 : 1, null);
         advanced.description = getString(R.string.advanced_effects_warning);

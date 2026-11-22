@@ -60,18 +60,20 @@
     <string name="weather_city_label" translatable="false">Weather city</string>
     <string name="weather_city_none" translatable="false">Not set</string>
     <string name="weather_city_description" translatable="false">The city for the weather above the dock on Home. Press OK to open the Weather app\'s city search; type a city and pick it. The Weather app fetches the forecast (from Open-Meteo, no account) at most every 30 minutes; the launcher itself stays offline.</string>
+    <string name="weather_animation_label" translatable="false">Animated weather</string>
+    <string name="weather_animation_description" translatable="false">Light effects on the weather cards that match each city\'s weather: a sun glow, twinkling stars, drifting clouds, rain, snow, lightning or mist. They run only while the cards are on Home. Turn them off if Home ever feels slow.</string>
     <string name="weather2_city_label" translatable="false">Second weather city</string>
     <string name="weather2_city_description" translatable="false">A second weather reading right of the first one above the dock. Press OK, type a city in the Weather app\'s search and pick it; you come straight back here.</string>
     <string name="world_clock_title" translatable="false">Second clock: choose a city</string>
     <string name="world_clock_title3" translatable="false">Third clock: choose a city</string>
     <string name="world_clock_hint" translatable="false">Type a city, e.g. London, Dubai, New York</string>
     <string name="stats_cpu">CPU %1$d%%</string>
-    <string name="stats_memory">RAM %1$d / %2$d MB</string>
+    <string name="stats_memory">⚡ %1$d / %2$d MB</string>
     <!-- Live network speed, all connections: down then up, e.g. "↓ 1.2 MB/s  ↑ 40 KB/s". -->
     <string name="stats_net" translatable="false">↓ %1$s  ↑ %2$s</string>
     <string name="speed_kb" translatable="false">%1$d KB/s</string>
     <string name="speed_mb" translatable="false">%1$.1f MB/s</string>
-    <string name="stats_storage">Storage %1$s free</string>
+    <string name="stats_storage">🗄️ %1$s free</string>
     <string name="storage_gb_whole">%1$.0f GB</string>
     <string name="storage_gb_decimal">%1$.1f GB</string>
     <string name="dream_name">Clock</string>

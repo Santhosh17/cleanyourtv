@@ -69,6 +69,10 @@ final class Forecast {
         /** Today's sunrise and sunset as local "HH:mm" at the place ("" if not read), and today's WMO code (-1). */
         String sunrise = "", sunset = "";
         int todayCode = -1;
+        /** Rain chance (%, -1 unknown) and amount (mm) per day, today first; and the next 2 hours in 15-minute mm. */
+        final List<int[]> rainChance = new ArrayList<>();
+        final List<Double> rainMm = new ArrayList<>();
+        final List<Double> next2h = new ArrayList<>();
 
         Report(double tempC, double feelsC, int code, boolean day, List<Day> days, int aqi, int humidity, int windKmh) {
             this.tempC = tempC;
@@ -129,7 +133,8 @@ final class Forecast {
         // and Google, had snow falling.
         JSONObject reply = get("https://api.open-meteo.com/v1/forecast?" + where + "&models=icon_seamless"
                 + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,is_day,wind_speed_10m"
-                + "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days="
+                + "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,"
+                + "precipitation_sum&minutely_15=precipitation&forecast_minutely_15=8&timezone=auto&forecast_days="
                 + (forecastDays(days) + 1));
         JSONObject current = reply.getJSONObject("current");
         double temp = current.getDouble("temperature_2m");
@@ -150,6 +155,14 @@ final class Forecast {
         if (set != null && !set.isNull(0)) report.sunset = set.getString(0).substring(11, 16);
         JSONArray codes = daily.getJSONArray("weather_code");
         if (!codes.isNull(0)) report.todayCode = codes.getInt(0);
+        JSONArray chance = daily.optJSONArray("precipitation_probability_max"), sum = daily.optJSONArray("precipitation_sum");
+        for (int i = 0; i < codes.length(); i++) {
+            report.rainChance.add(new int[]{chance == null || chance.isNull(i) ? -1 : chance.getInt(i)});
+            report.rainMm.add(sum == null || sum.isNull(i) ? 0.0 : sum.getDouble(i));
+        }
+        JSONObject quarter = reply.optJSONObject("minutely_15");
+        JSONArray rain15 = quarter == null ? null : quarter.optJSONArray("precipitation");
+        if (rain15 != null) for (int i = 0; i < rain15.length(); i++) report.next2h.add(rain15.isNull(i) ? 0.0 : rain15.getDouble(i));
         return report;
     }
 

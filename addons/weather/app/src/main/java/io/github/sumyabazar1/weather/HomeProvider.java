@@ -12,15 +12,16 @@ import android.net.Uri;
  * launcher's second weather city): one row of city, temperature, feels-like, unit, sky words, the WMO code and day
  * flag (for an icon), today's high and low, the next five days as "weekday,code,high,low;..." (weekday 1 =
  * Monday), the US AQI (-1 unknown), today's sunrise and sunset ("HH:mm", local to the place) and today's WMO code -
- * or no row before a city is picked. Read-only.
+ * today's rain chance (%) and amount (mm), the next 2 hours as eight 15-minute amounts "0.0,0.4,...", and the time
+ * of the reading (ms) - or no row before a city is picked. The five days carry ",chance,mm" too. Read-only.
  *
  * It fetches only when asked and at most every 30 minutes (Forecast.REFRESH_MS), from the asking app's background
  * thread, so the add-on still runs no service. The query "cached" never goes online (for a settings summary).
  */
 public final class HomeProvider extends ContentProvider {
-    private static final String[] COLUMNS = {"city", "temp", "feels", "unit", "sky", "code", "day", "high", "low", "days", "aqi", "sunrise", "sunset", "todaycode"};
+    private static final String[] COLUMNS = {"city", "temp", "feels", "unit", "sky", "code", "day", "high", "low", "days", "aqi", "sunrise", "sunset", "todaycode", "rainchance", "rainmm", "next2h", "updated"};
     /** Bumped when the cached fields change, so an older cache is fetched again. */
-    private static final int CACHE_VERSION = 4;
+    private static final int CACHE_VERSION = 5;
 
     @Override public boolean onCreate() {
         return true;
@@ -28,6 +29,7 @@ public final class HomeProvider extends ContentProvider {
 
     @Override
     public synchronized Cursor query(Uri uri, String[] projection, String selection, String[] args, String sort) {
+        if ("country".equals(uri.getLastPathSegment())) return country(selection);
         MatrixCursor out = new MatrixCursor(COLUMNS);
         boolean second = "now2".equals(uri.getLastPathSegment());
         SharedPreferences place = getContext().getSharedPreferences(second ? "place2" : "place", 0);
@@ -48,7 +50,9 @@ public final class HomeProvider extends ContentProvider {
                     if (days.length() > 0) days.append(';');
                     days.append(d.date.getDayOfWeek().getValue()).append(',').append(d.code).append(',')
                             .append(Double.doubleToRawLongBits(d.maxC)).append(',')
-                            .append(Double.doubleToRawLongBits(d.minC));
+                            .append(Double.doubleToRawLongBits(d.minC)).append(',')
+                            .append(i + 1 < r.rainChance.size() ? r.rainChance.get(i + 1)[0] : -1).append(',')
+                            .append(i + 1 < r.rainMm.size() ? r.rainMm.get(i + 1) : 0.0);
                 }
                 cache.edit().putString("for", key).putInt("v", CACHE_VERSION).putLong("at", System.currentTimeMillis())
                         .putLong("high", Double.doubleToRawLongBits(r.todayMaxC))
@@ -56,6 +60,9 @@ public final class HomeProvider extends ContentProvider {
                         .putString("days", days.toString())
                         .putInt("aqi", r.aqi).putString("sunrise", r.sunrise).putString("sunset", r.sunset)
                         .putInt("todaycode", r.todayCode)
+                        .putInt("rainchance", r.rainChance.isEmpty() ? -1 : r.rainChance.get(0)[0])
+                        .putFloat("rainmm", r.rainMm.isEmpty() ? 0f : r.rainMm.get(0).floatValue())
+                        .putString("next2h", android.text.TextUtils.join(",", r.next2h))
                         .putLong("temp", Double.doubleToRawLongBits(r.tempC))
                         .putLong("feels", Double.doubleToRawLongBits(r.feelsC))
                         .putInt("code", r.code).putBoolean("day", r.day).commit();
@@ -64,7 +71,8 @@ public final class HomeProvider extends ContentProvider {
             }
         }
         if (!key.equals(cache.getString("for", ""))) {
-            out.addRow(new Object[]{city, null, null, null, null, null, null, null, null, null, null, null, null, null});
+            out.addRow(new Object[]{city, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                    null, null, null, null});
             return out;
         }
         boolean f = getContext().getSharedPreferences("options", 0).getBoolean("fahrenheit",
@@ -78,17 +86,57 @@ public final class HomeProvider extends ContentProvider {
         StringBuilder days = new StringBuilder();
         for (String d : cache.getString("days", "").split(";")) {
             String[] p = d.split(",");
-            if (p.length != 4) continue;
+            if (p.length < 4) continue;
             if (days.length() > 0) days.append(';');
             days.append(p[0]).append(',').append(p[1]).append(',')
                     .append(Forecast.degrees(Double.longBitsToDouble(Long.parseLong(p[2])), f)).append(',')
                     .append(Forecast.degrees(Double.longBitsToDouble(Long.parseLong(p[3])), f));
+            if (p.length >= 6) days.append(',').append(p[4]).append(',').append(p[5]);
         }
         out.addRow(new Object[]{city, Forecast.degrees(temp, f), Forecast.degrees(feels, f), f ? "F" : "C",
                 getContext().getString(Forecast.sky(code, day)), code, day ? 1 : 0,
                 Double.isNaN(high) ? null : Forecast.degrees(high, f), Double.isNaN(low) ? null : Forecast.degrees(low, f),
                 days.toString(), cache.getInt("aqi", -1), cache.getString("sunrise", ""),
-                cache.getString("sunset", ""), cache.getInt("todaycode", -1)});
+                cache.getString("sunset", ""), cache.getInt("todaycode", -1), cache.getInt("rainchance", -1),
+                cache.getFloat("rainmm", 0f), cache.getString("next2h", ""), cache.getLong("at", 0)});
+        return out;
+    }
+
+    /**
+     * content://io.github.sumyabazar1.weather.home/country: the two-letter country of the TV's public IP (a VPN's
+     * exit country when one is on), from Cloudflare's plain-text trace ("loc=DE"), which needs no account. Read at
+     * most every 5 minutes, or at once with the query "fresh" (the launcher sends it after a network change); ""
+     * when offline or unknown. A failed read is not kept, so the next query tries again.
+     */
+    private Cursor country(String selection) {
+        MatrixCursor out = new MatrixCursor(new String[]{"country"});
+        android.content.SharedPreferences net = getContext().getSharedPreferences("net", 0);
+        String code = net.getString("country", "");
+        if ("fresh".equals(selection) || System.currentTimeMillis() - net.getLong("at", 0) > 5 * 60_000L) {
+            code = "";
+            try {
+                java.net.HttpURLConnection c = (java.net.HttpURLConnection)
+                        new java.net.URL("https://www.cloudflare.com/cdn-cgi/trace").openConnection();
+                c.setConnectTimeout(5000);
+                c.setReadTimeout(5000);
+                try (java.io.BufferedReader r = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(c.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
+                    for (String line; (line = r.readLine()) != null; ) {
+                        if (line.startsWith("loc=")) code = line.substring(4).trim();
+                    }
+                } finally {
+                    c.disconnect();
+                }
+            } catch (Exception e) {
+                // offline: no flag rather than a stale one
+            }
+            if (code.matches("[A-Z]{2}")) {
+                net.edit().putString("country", code).putLong("at", System.currentTimeMillis()).apply();
+            } else {
+                code = "";
+            }
+        }
+        out.addRow(new Object[]{code});
         return out;
     }
 

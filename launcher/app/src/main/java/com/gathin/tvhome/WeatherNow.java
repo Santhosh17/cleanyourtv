@@ -26,7 +26,12 @@ final class WeatherNow {
     final Integer aqi;
     final String sunrise, sunset;
     final int todayCode;
-    /** The next days, tomorrow first: {weekday 1 = Monday, WMO code, high, low}. */
+    /** Today's rain chance (%, -1 unknown) and amount (mm); the next 2 hours in 15-minute mm; reading time (ms, 0 unknown). */
+    final int rainChance;
+    final double rainMm;
+    final double[] next2h;
+    final long updated;
+    /** The next days, tomorrow first: {weekday 1 = Monday, WMO code, high, low, rain chance % or -1}. */
     final java.util.List<int[]> days = new java.util.ArrayList<>();
 
     private WeatherNow(Cursor c) {
@@ -44,14 +49,30 @@ final class WeatherNow {
         Integer codeOrNull = integer(c, "code"), dayOrNull = integer(c, "day");
         code = codeOrNull == null ? 3 : codeOrNull;
         day = dayOrNull == null || dayOrNull == 1;
+        Integer chance = integer(c, "rainchance");
+        rainChance = chance == null ? -1 : chance;
+        int mm = c.getColumnIndex("rainmm");
+        rainMm = mm < 0 || c.isNull(mm) ? 0 : c.getDouble(mm);
+        int at = c.getColumnIndex("updated");
+        updated = at < 0 || c.isNull(at) ? 0 : c.getLong(at);
+        String q = empty(string(c, "next2h"));
+        String[] qs = q == null ? new String[0] : q.split(",");
+        next2h = new double[qs.length];
+        for (int i = 0; i < qs.length; i++) {
+            try {
+                next2h[i] = Double.parseDouble(qs[i]);
+            } catch (NumberFormatException ignored) {
+                // a malformed slot counts as dry
+            }
+        }
         String d = string(c, "days");
         if (d != null) {
             for (String part : d.split(";")) {
                 String[] p = part.split(",");
-                if (p.length != 4) continue;
+                if (p.length < 4) continue;
                 try {
                     days.add(new int[]{Integer.parseInt(p[0]), Integer.parseInt(p[1]), Integer.parseInt(p[2]),
-                            Integer.parseInt(p[3])});
+                            Integer.parseInt(p[3]), p.length > 4 ? Integer.parseInt(p[4]) : -1});
                 } catch (NumberFormatException ignored) {
                     // a malformed day is left out
                 }
@@ -80,6 +101,26 @@ final class WeatherNow {
         if (tomorrow >= 95) return "\u26C8\uFE0F Storms tomorrow";
         if (rain(tomorrow)) return "\u2614 Rain tomorrow";
         return null;
+    }
+
+    /** 0.1 mm in 15 minutes: the least that counts as rain on the timeline. */
+    static boolean wet(double mm) {
+        return mm >= 0.1;
+    }
+
+    /**
+     * The next 2 hours in words from the 15-minute amounts: "Rain in 30 min", "Rain stops in 45 min", "Rain for the
+     * next 2 h"; when dry, the today/tomorrow warning, else "No rain next 2 h". Null without a timeline.
+     */
+    String timeline() {
+        if (next2h.length == 0) return warning();
+        int change = 1;
+        while (change < next2h.length && wet(next2h[change]) == wet(next2h[0])) change++;
+        if (wet(next2h[0])) return change == next2h.length ? "\u2614 Rain for the next 2 h"
+                : "\u2614 Rain stops in " + change * 15 + " min";
+        if (change < next2h.length) return "\u2614 Rain in " + change * 15 + " min";
+        String w = warning();
+        return w != null ? w : "No rain next 2 h";
     }
 
     /** US AQI band 0-5: good, moderate, unhealthy for sensitive groups, unhealthy, very unhealthy, hazardous. */
@@ -121,6 +162,26 @@ final class WeatherNow {
         } catch (RuntimeException e) {
             return null;   // add-on missing, disabled or failing
         }
+    }
+
+    /**
+     * The two-letter country of the TV's public IP from the add-on (it looks it up), or "" when unknown.
+     * {@code fresh} makes it look up again now instead of answering from its 5-minute memory.
+     */
+    static String country(Context context, boolean fresh) {
+        try (Cursor c = context.getContentResolver().query(Uri.parse("content://io.github.sumyabazar1.weather.home/country"),
+                null, fresh ? "fresh" : null, null, null)) {
+            return c != null && c.moveToFirst() && !c.isNull(0) ? c.getString(0) : "";
+        } catch (RuntimeException e) {
+            return "";
+        }
+    }
+
+    /** "DE" as its flag emoji (two regional indicator letters), "" for anything else. */
+    static String flag(String code) {
+        if (code == null || !code.matches("[A-Z]{2}")) return "";
+        return new String(Character.toChars(0x1F1E6 + code.charAt(0) - 'A'))
+                + new String(Character.toChars(0x1F1E6 + code.charAt(1) - 'A'));
     }
 
     /** Whether the add-on is installed (its reading may still be empty). */
