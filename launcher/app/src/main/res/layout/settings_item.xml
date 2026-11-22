@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One Launcher settings row: round icon, title, current value. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="64dp"
+    android:layout_marginTop="2dp"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/tv_row_bg"
+    android:focusable="true"
+    android:clickable="true">
+
+    <ImageView
+        android:id="@+id/icon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:padding="9dp"
+        android:background="@drawable/tv_icon_bg"
+        android:duplicateParentState="true"
+        android:tint="@color/tv_icon_tint"
+        android:importantForAccessibility="no" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:duplicateParentState="true"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:duplicateParentState="true"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textColor="@color/tv_row_title"
+            android:textSize="17sp" />
+
+        <TextView
+            android:id="@+id/summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:duplicateParentState="true"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textColor="@color/tv_row_summary"
+            android:textSize="14sp" />
+    </LinearLayout>
+</LinearLayout>

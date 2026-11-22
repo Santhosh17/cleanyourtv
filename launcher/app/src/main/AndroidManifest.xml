@@ -9,6 +9,9 @@
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- The Bluetooth pill's colour: whether any device (the remote included) is connected. Granted at install up to
+         Android 11; on 12 and later the pill stays blue while on, as BLUETOOTH_CONNECT would need a prompt. -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <!-- Needed since Android 10 to read the Wi-Fi network name for the network pill. Never requested at
          runtime: build-and-install grants it with pm grant, so lint's Android 12 "ask for COARSE with
          FINE" rule does not apply here. -->
@@ -51,10 +54,6 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
         </intent>
-        <intent>
-            <action android:name="android.intent.action.MAIN" />
-            <category android:name="com.gathin.tvhome.category.DOCK_CARD" />
-        </intent>
         <!-- stock_home_redirect: HomeKeyService looks up the stock launcher's HOME activity. -->
         <intent>
             <action android:name="android.intent.action.MAIN" />
@@ -68,6 +67,9 @@
         <!-- Coocaa OS sources for the Inputs menu (coocaa_sources); see CoocaaSources. -->
         <provider android:authorities="com.skyworth.tv.provider" />
         <provider android:authorities="com.skyworth.tv.sdk.provider" />
+        <!-- The Weather add-on: its current reading (shown above the dock) and its city picker (Launcher settings). -->
+        <package android:name="io.github.sumyabazar1.weather" />
+        <provider android:authorities="io.github.sumyabazar1.weather.home" />
     </queries>
 
     <application

@@ -64,6 +64,8 @@ final class Forecast {
         final int aqi;
         final int humidity;
         final int windKmh;
+        /** Today's high and low (NaN if not read), for a home screen card. */
+        double todayMaxC = Double.NaN, todayMinC = Double.NaN;
 
         Report(double tempC, double feelsC, int code, boolean day, List<Day> days, int aqi, int humidity, int windKmh) {
             this.tempC = tempC;
@@ -130,10 +132,16 @@ final class Forecast {
         double temp = current.getDouble("temperature_2m");
         double humidity = current.getDouble("relative_humidity_2m");
         int code = snowIfCold(current.getInt("weather_code"), temp, humidity);
-        return new Report(temp, current.getDouble("apparent_temperature"),
+        Report report = new Report(temp, current.getDouble("apparent_temperature"),
                 code, current.getInt("is_day") == 1,
                 days(reply.getJSONObject("daily")), aqiOrUnknown(where),
                 (int) Math.round(humidity), (int) Math.round(current.optDouble("wind_speed_10m", 0)));
+        JSONObject daily = reply.getJSONObject("daily");
+        if (!daily.getJSONArray("temperature_2m_max").isNull(0)) {
+            report.todayMaxC = daily.getJSONArray("temperature_2m_max").getDouble(0);
+            report.todayMinC = daily.getJSONArray("temperature_2m_min").getDouble(0);
+        }
+        return report;
     }
 
     /**

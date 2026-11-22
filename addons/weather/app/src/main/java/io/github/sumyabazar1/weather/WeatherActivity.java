@@ -33,6 +33,11 @@ import java.util.concurrent.Executors;
  */
 public final class WeatherActivity extends Activity {
     private static final String PREFS = "place";
+    /** Open straight into the city picker (the Clean Your TV launcher's "Weather city" setting). */
+    static final String EXTRA_PICK_CITY = "io.github.sumyabazar1.weather.PICK_CITY";
+    /** With EXTRA_PICK_CITY: 2 picks the launcher's second weather city (kept apart, in "place2"), then closes. */
+    static final String EXTRA_SLOT = "io.github.sumyabazar1.weather.SLOT";
+    private boolean pickSecond;
 
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -70,9 +75,15 @@ public final class WeatherActivity extends Activity {
         changeCity.setOnClickListener(v -> pickCity());
         findViewById(R.id.weatherSettings).setOnClickListener(v -> settings());
         changeCity.requestFocus();
-        if (!place.contains("name")) {
+        if (getIntent().getBooleanExtra(EXTRA_PICK_CITY, false) && getIntent().getIntExtra(EXTRA_SLOT, 1) == 2) {
+            pickSecond = true;
+            content.setVisibility(View.INVISIBLE);
+            pickCity();
+        } else if (!place.contains("name")) {
             message.setText(R.string.pick_first);
             pickCity();
+        } else if (getIntent().getBooleanExtra(EXTRA_PICK_CITY, false)) {
+            pickCity();   // opened from the launcher's "Weather city" setting
         }
     }
 
@@ -80,7 +91,7 @@ public final class WeatherActivity extends Activity {
     protected void onResume() {
         super.onResume();
         resumed = true;
-        if (place.contains("name")) refresh();
+        if (place.contains("name") && !pickSecond) refresh();   // picking the second city: only the picker shows
     }
 
     @Override
@@ -350,6 +361,15 @@ public final class WeatherActivity extends Activity {
                 .setTitle(R.string.pick_title)
                 .setItems(rows, (d, which) -> {
                     Forecast.Place p = places.get(which);
+                    if (pickSecond) {
+                        getSharedPreferences("place2", MODE_PRIVATE).edit()
+                                .putString("name", p.name)
+                                .putLong("lat", Double.doubleToRawLongBits(p.latitude))
+                                .putLong("lon", Double.doubleToRawLongBits(p.longitude))
+                                .apply();
+                        finish();   // back to the launcher's settings
+                        return;
+                    }
                     place.edit()
                             .putString("name", p.name)
                             .putLong("lat", Double.doubleToRawLongBits(p.latitude))

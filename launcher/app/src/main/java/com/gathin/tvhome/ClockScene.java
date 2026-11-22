@@ -17,13 +17,9 @@ import android.view.View;
 import android.widget.ImageView;
 
 import java.io.File;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 
 /**
  * The clock screensaver's scene (layout dream_clock): the thin clock and date on black over a slow ambient
@@ -63,8 +59,6 @@ final class ClockScene {
     private long rotationMs;
     private long shownMs;
     private String order;
-    private Map<String, Set<String>> moods;
-    private String latitude, longitude;
 
     private final Runnable tick = new Runnable() {
         @Override
@@ -143,9 +137,6 @@ final class ClockScene {
             // itself; without this it holds one picture for as long as it is up.
             rotationMs = cfg.wallpaperRotationMinutes * 60_000L;
             order = cfg.wallpaperOrder;
-            moods = cfg.wallpaperMoods;
-            latitude = moods.isEmpty() ? "" : ctx.getString(R.string.latitude);
-            longitude = moods.isEmpty() ? "" : ctx.getString(R.string.longitude);
         }
         wallpaperShade = (cfg.clockWallpaperDim * 255 / 100) << 24;
         wallpaperRes = ctx.getResources();
@@ -207,22 +198,12 @@ final class ClockScene {
         shownMs += MOVE_MS;
         if (shownMs < rotationMs) return;
         shownMs = 0;
-        // The same pick as Home's, so a shuffled collection stays shuffled and wallpaper_moods still
-        // decides what may show at this hour.
-        File next = WallpaperRotation.pick(playable(), wallpaperFile.getName(), order, random);
-        if (next.equals(wallpaperFile)) return;   // a mood group of one
+        // The same pick as Home's, so a shuffled collection stays shuffled.
+        File next = WallpaperRotation.pick(rotation, wallpaperFile.getName(), order, random);
+        if (next.equals(wallpaperFile)) return;
         wallpaperFile = next;
         wallpaperShown = false;
         loadWallpaper();
-    }
-
-    /** WallpaperPlayer's filter: the pictures wallpaper_moods allows at this hour, or all of them. */
-    private List<File> playable() {
-        if (moods.isEmpty()) return rotation;
-        LocalDateTime now = LocalDateTime.now();
-        int[] sun = WallpaperMood.sun(now.toLocalDate(), latitude, longitude, ZoneId.systemDefault());
-        return WallpaperMood.select(rotation, moods,
-                WallpaperMood.timeOfDay(now.getHour() * 60 + now.getMinute(), sun[0], sun[1]));
     }
 
     private void moveClock() {

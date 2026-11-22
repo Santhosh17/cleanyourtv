@@ -18,10 +18,10 @@
 
     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
     <string-array name="dock_apps">
-        <item>com.netflix.ninja</item>
-        <item>com.amazon.amazonvideo.livingroom</item>
+        <item>com.mediatek.wwtv.tvcenter</item>
         <item>com.google.android.youtube.tv</item>
         <item>in.startv.hotstar</item>
+        <item>com.amazon.amazonvideo.livingroom</item>
     </string-array>
     <!-- With fewer dock_apps than columns (or a dock app that is not installed), the free dock slots take
          the first grid apps, so the dock never shows a gap. false leaves them empty (#162); a theme can
@@ -30,7 +30,7 @@
 
     <!-- Apps never shown as tiles (e.g. the Live TV app, which the Inputs menu already covers). -->
     <string-array name="hidden_apps">
-        <item>com.mediatek.wwtv.tvcenter</item>
+        <item>com.hisense.tv.protector</item>
         <item>com.mitv.gallery</item>
     </string-array>
 
@@ -185,11 +185,12 @@
          a temporary `Log.d` in the helper's `onKeyEvent`: `getKeyCode()`, `getScanCode()`, `getDeviceId()`, read
          after a HOME_KEY_SERVICE=1 rebuild. Leave empty to omit. -->
     <integer-array name="settings_key_keycodes">
+        <item>83</item>
     </integer-array>
     <!-- What those Settings buttons open: false, the TV's Settings; true, a small glass panel at the top right
          with TV settings, Display, Network, Apps (re-enable an app) and Launcher settings, over whatever is on screen.
          Both keys can also be set from a theme's config.json ("settings_key_keycodes": [83]). -->
-    <bool name="settings_key_panel">false</bool>
+    <bool name="settings_key_panel">true</bool>
     <!-- true: those Settings buttons clear the TV Settings task before opening Settings (with settings_key_panel off).
          On some MediaTek boards KEYCODE_SETTINGS is also a global key: com.mediatek.tv.service opens Display & Sound in
          the same task before the helper sees the press, so Settings stacked on it and Back landed there (Skyworth
@@ -200,7 +201,7 @@
          off the enabled list. true: Home puts the helpers that were running back when it starts; one turned off in
          Settings stays off. Needs WRITE_SECURE_SETTINGS, which build-and-install grants with RESTORE_KEY_SERVICES=1
          (-RestoreKeyServices on Windows) and takes back on an install without it. Can also be set with "restore_key_services": true in a theme's config.json. -->
-    <bool name="restore_key_services">false</bool>
+    <bool name="restore_key_services">true</bool>
 
     <!-- More remote buttons that open the input switcher, by Android keycode (INPUT_KEY_SERVICE=1
          build-and-install.sh; KEYCODE_TV always does). For buttons only a disabled app answered: the Xiaomi
@@ -245,6 +246,8 @@
          where the firmware hands KEYCODE_GUIDE (172) to the stock launcher and no app ever receives it. Leave empty
          to omit. -->
     <string-array name="app_keys" translatable="false">
+        <item>scan:469:com.google.android.youtube.tv</item>
+        <item>scan:468:com.amazon.amazonvideo.livingroom</item>
     </string-array>
 
     <!-- Package of the stock launcher, for TVs whose firmware turns it back on after it was disabled. XGIMI's
@@ -274,14 +277,15 @@
          still step). A theme's config.json can set it too. Off by default. -->
     <bool name="home_long_press_home">false</bool>
 
-    <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the
-         Gregorian date. -->
-    <bool name="shamsi_date">false</bool>
-    <!-- Lunisolar (Vietnamese / Chinese / Korean) date under the date; config.json lunar_date, lunar_utc_offset (7, 8 or 9, default by locale). -->
-    <bool name="lunar_date">false</bool>
-    <!-- The date (with the Shamsi and lunar lines) on its own line under the clock instead of beside it, for a top bar
+    <!-- The date on its own line under the clock instead of beside it, for a top bar
          whose pills leave the date too little room. Can also be set with "date_below_clock" in a theme. -->
-    <bool name="date_below_clock">false</bool>
+    <bool name="date_below_clock">true</bool>
+    <!-- The date's pattern (java.text.SimpleDateFormat letters, shown as written, not upper-cased), e.g.
+         "EEE dd-MM-yyyy" for "Mon 31-12-2026". Empty keeps the language's own date_format_home. -->
+    <string name="date_format_override" translatable="false">EEE dd-MM-yyyy</string>
+    <!-- A second and a third clock beside the clock, 75% of its size, each for a city picked in Launcher settings >
+         Clock. Offline: the city's time comes from the TV's clock and Android's timezone database. -->
+    <bool name="world_clock">true</bool>
     <!-- The language the launcher shows itself in, as a language tag ("vi", "pt-BR", "ar-EG-u-nu-latn"
          for Arabic with Western digits), instead of the TV's. For firmware
          that has no menu entry for the owner's language although the launcher is translated into it (a China-market
@@ -353,11 +357,11 @@
     <!-- true colours the Wi-Fi pill's icon green while the TV is online and leaves it white while it is not (dark on
          the focused pill either way), so the connection shows at a glance, also as an icon-only button. Can also be
          set with "wifi_status_color": true in a theme's config.json. -->
-    <bool name="wifi_status_color">false</bool>
-    <!-- With wifi_status_color: the icon orange while the TV is connected but Android has not reached the internet
+    <bool name="wifi_status_color">true</bool>
+    <!-- With wifi_status_color: the icon red while the TV is connected but Android has not reached the internet
          through it (a hotel or holiday-park Wi-Fi waiting for its login page) and red while it is offline, instead
          of white for both. Can also be set with "wifi_status_warnings": true in a theme's config.json. -->
-    <bool name="wifi_status_warnings">false</bool>
+    <bool name="wifi_status_warnings">true</bool>
     <!-- The app library as a round button in the top bar, beside Settings (app_library must be on too). -->
     <bool name="library_button">false</bool>
     <!-- The App library pill after the last Home row. false hides it while library_button is on, so the top-bar
@@ -399,13 +403,6 @@
          pictures in wallpapers/ ("01-dusk.jpg<TAB>Dusk over the peaks", one per line). A picture without a line
          shows no name. Can also be set with "wallpaper_captions": true in a theme's config.json. -->
     <bool name="wallpaper_captions">false</bool>
-    <!-- Rotating wallpapers grouped by the time of day, as JSON: {"morning": [file names], "evening": [...],
-         "night": [...]}. While set, the rotation picks only from the group that fits now: morning from sunrise to
-         noon, evening until half an hour after sunset, night the rest, with the sun at latitude and longitude (07:00
-         and 18:30 without them). It moves to the new group as soon as the time of day changes. A missing or empty
-         group falls back to the whole collection; empty rotates through every picture. A theme can set
-         "wallpaper_moods" as an object. -->
-    <string name="wallpaper_moods" translatable="false"></string>
     <!-- Hold OK on a tile opens a small menu: Move (picks the tile up for reordering), Remove from Home (only with
          app_library) and App info. On by default since 3.3; false keeps the old behaviour: holding OK opens the app's
          App info page. A theme's config.json can set "tile_menu" either way. -->
@@ -461,9 +458,6 @@
     <string-array name="library_excluded_apps" translatable="false">
     </string-array>
 
-    <!-- Module cards: an app that declares a card (docs/specs/card.md) can stand in for its tile with its own
-         label, caption and glow colour, once you answer Show on the prompt. false: never look for cards or ask. -->
-    <bool name="module_cards">true</bool>
 
     <!-- Reduced motion: for TVs whose GPU cannot keep up (MediaTek MT5895 on Android 10 is the known case).
          true keeps the GPU drawing path but calms the movement and draws far fewer frames: the highlight
@@ -478,26 +472,13 @@
          "focus_overshoot" in a theme's config.json. -->
     <bool name="focus_overshoot">true</bool>
 
-    <!-- One line under the clock: CPU, free memory and free storage. Off by default; a theme can set
+    <!-- One line at the top right, above the pills: CPU, memory and free storage. A theme can set
          "show_stats": true. Nothing is read, and the clock does not move, while this is false. -->
-    <bool name="show_stats">false</bool>
+    <bool name="show_stats">true</bool>
+    <!-- How often the stats line refreshes while Home is on screen. -->
+    <integer name="stats_interval_ms">1000</integer>
 
-    <!-- Each team's next game in the F1 panel's place under the clock, rotating with the theme's F1 weekend: the package
-         of an add-on that publishes them (the Game Day add-on: io.github.justinnewman.gameday; contract in docs/modules.md).
-         Empty = off: nothing is read or watched. The launcher only reads what the add-on publishes and never goes
-         online. A theme can set "game_day". -->
-    <string name="game_day" translatable="false"></string>
 
-    <!-- Time-of-day backdrop behind everything: a dark gradient that follows the clock, with a warm
-         horizon glow around sunrise and sunset. 0 keeps the plain background (the default); 1 to 100
-         sets its opacity. Around 60 reads clearly without hiding a wallpaper. Can also be set with
-         "sky_intensity": 60 in a theme's config.json. -->
-    <integer name="sky_intensity">0</integer>
-    <!-- Where the TV is, in decimal degrees, so the sky's sunrise and sunset glows follow the real sun
-         (computed on the TV, no network). Empty: a fixed temperate day, sunset glow around 19:00.
-         Vilnius: 54.69 and 25.28. -->
-    <string name="latitude" translatable="false"></string>
-    <string name="longitude" translatable="false"></string>
 
     <!-- Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its
          colour; the shelf gets a larger name, a "Last opened" line (from the apps Home opened) and dock position

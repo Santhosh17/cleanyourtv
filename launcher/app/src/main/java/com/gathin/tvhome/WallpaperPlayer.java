@@ -17,15 +17,11 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.File;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -55,12 +51,6 @@ final class WallpaperPlayer {
     /** wallpaper_captions: the shown picture's name from wallpapers/captions.txt; null when off or there are none. */
     private final TextView caption;
     private final Map<String, String> names;
-    /** wallpaper_moods: the collection's groups by time of day; empty rotates through all of it. */
-    private final Map<String, Set<String>> moods;
-    /** config.xml latitude and longitude for the sun's times, and today's {sunrise, sunset} once worked out. */
-    private final String latitude, longitude;
-    private LocalDate sunDay;
-    private int[] sun;
 
     WallpaperPlayer(Context context, FrameLayout root, Config config) {
         this.root = root;
@@ -72,9 +62,6 @@ final class WallpaperPlayer {
         dimColor = config.wallpaperDim > 0 ? (config.wallpaperDim * 255 / 100) << 24 : 0;
         order = config.wallpaperOrder;
         preferences = context.getSharedPreferences("wallpaper_rotation", Context.MODE_PRIVATE);
-        moods = config.wallpaperMoods;
-        latitude = moods.isEmpty() ? "" : context.getString(R.string.latitude);
-        longitude = moods.isEmpty() ? "" : context.getString(R.string.longitude);
         // Playback state belongs to one collection. Changing the collection starts from its first
         // picture instead of resuming a filename that belonged to the previous one.
         String collection = collectionKey(files);
@@ -148,15 +135,9 @@ final class WallpaperPlayer {
         root.setBackgroundColor(backgroundColor);
     }
 
-    /** The pictures the rotation picks from now: wallpaper_moods' group for the time of day, or the whole collection. */
+    /** The pictures the rotation picks from: the whole collection. */
     private List<File> playable() {
-        if (moods.isEmpty()) return files;
-        LocalDateTime now = LocalDateTime.now();
-        if (!now.toLocalDate().equals(sunDay)) {
-            sunDay = now.toLocalDate();
-            sun = WallpaperMood.sun(sunDay, latitude, longitude, ZoneId.systemDefault());
-        }
-        return WallpaperMood.select(files, moods, WallpaperMood.timeOfDay(now.getHour() * 60 + now.getMinute(), sun[0], sun[1]));
+        return files;
     }
 
     void close() {

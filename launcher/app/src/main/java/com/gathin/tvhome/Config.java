@@ -8,7 +8,6 @@ import android.os.Environment;
 import android.util.Log;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -21,10 +20,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * The launcher's settings: the values in res/values/config.xml, with an optional overlay read from
@@ -89,10 +86,6 @@ final class Config {
     final boolean animations;
     final boolean advancedEffects;
     final int rowsBelowDock;
-    final boolean shamsiDate;
-    /** Lunisolar date under the date (config.json lunar_date), computed for lunarUtcOffset hours east of UTC (-1: by locale). */
-    final boolean lunarDate;
-    final int lunarUtcOffset;
     /** The date on its own line under the clock instead of beside it (config.xml, date_below_clock). */
     final boolean dateBelowClock;
     /** The VPN state as its own pill after the network pill, instead of a badge inside it (config.xml, vpn_pill). */
@@ -101,7 +94,6 @@ final class Config {
     final String locale;
     /** Name after the greeting ("Good morning, Mr. Trịnh"); empty for the greeting alone. */
     final String greetingName;
-    final boolean moduleCards;
     /** Calmer motion for weak GPUs (config.xml, reduced_motion): stiff spring, short fades, no replay. */
     final boolean reducedMotion;
     /** Open the Live TV app on the first Home after the TV starts (config.xml, boot_to_live_tv). */
@@ -154,8 +146,6 @@ final class Config {
     final boolean showHomeSettingsShortcut;
     /** One line under the clock: CPU, free memory, free storage. Off unless config or a theme turns it on. */
     final boolean showStats;
-    /** game_day: the package of an add-on that publishes each team's next game (GameDay); empty = off. */
-    final String gameDay;
     /** App library pill after the last Home row (config.xml app_library). */
     final boolean appLibrary;
     /** OK directly toggles Home membership in the library (app_library_selection). */
@@ -166,8 +156,6 @@ final class Config {
     final boolean uniformTiles;
     /** Background colour behind everything, #RRGGBB; black unless a theme says otherwise. */
     final int backgroundColor;
-    /** Time-of-day backdrop, 0 to 100 (config.xml, sky_intensity); 0 keeps the plain background. */
-    final int skyIntensity;
     /** Remote keycodes that open Settings through HomeKeyService (config.xml, settings_key_keycodes). */
     final int[] settingsKeycodes;
     /** Extra keycodes that open the input switcher in InputKeyService (config.xml input_key_keycodes). */
@@ -220,10 +208,6 @@ final class Config {
     final String wallpaperOrder;
     /** Whether the overlay file was present and parsed. */
     final boolean overlayApplied;
-    /** Festive skin from a theme (festival, festival_until, greeting, accent_color); {@link Festival#NONE} if none. */
-    final Festival festival;
-    /** F1 weekends from a theme's race_calendar (see RaceWeekend); empty when the theme has none. */
-    final List<RaceWeekend.Race> raceCalendar;
     /** Cinematic top shelf (config.xml, cinematic_home): the focused dock app's artwork behind a larger shelf. */
     final boolean cinematicHome;
     /** The glow in the focused app's colour behind the dock (config.xml, ambient_glow); false keeps the background plain. */
@@ -250,8 +234,6 @@ final class Config {
     final int cinematicArt;
     /** Strength of the cinematic shelf's dark scrim, 0 to 100 percent (config.xml, cinematic_scrim); 100 as before. */
     final int cinematicScrim;
-    /** A rotating collection's groups by time of day, as file names (config.xml, wallpaper_moods); empty rotates through all of it. */
-    final Map<String, Set<String>> wallpaperMoods;
     /** Shape of the glow behind the focused app (config.xml, glow_style): {@link #GLOW_RADIAL} or {@link #GLOW_HORIZON}. */
     final String glowStyle;
     /** The focus highlight's look (config.xml, glass_style): {@link #GLASS_DEFAULT}, {@link #GLASS_RIM} or {@link #GLASS_HALO}. */
@@ -289,15 +271,15 @@ final class Config {
                    Map<String, String> appBanners, String sourcePanelService, String sourcePanelAction,
                    String sourcePanelExtra, boolean coocaaSources, String inputAction, List<String> inputSources,
                    String inputUriScheme, int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
-                   boolean shamsiDate, String greetingName, boolean moduleCards, boolean reducedMotion, boolean bootToLiveTv, boolean openOnStartChoice, boolean dockTitle, boolean dockRow, boolean topMenu, boolean launcherSettingsButton, boolean reorderButton, boolean showNetworkPill, boolean showInputsPill, boolean iconOnlyButtons, boolean iconOnlyInputs, boolean libraryButton, boolean showLibraryPill, int wifiLabelWidth, boolean alwaysShowNames, boolean wallpaperTrueColor, boolean focusOvershoot, String vpnApp,
-                   boolean showHomeSettingsShortcut, boolean showStats, String gameDay, boolean appLibrary, boolean appLibrarySelection, boolean libraryOkOpens, boolean uniformTiles, int backgroundColor, int skyIntensity,
+                   String greetingName, boolean reducedMotion, boolean bootToLiveTv, boolean openOnStartChoice, boolean dockTitle, boolean dockRow, boolean topMenu, boolean launcherSettingsButton, boolean reorderButton, boolean showNetworkPill, boolean showInputsPill, boolean iconOnlyButtons, boolean iconOnlyInputs, boolean libraryButton, boolean showLibraryPill, int wifiLabelWidth, boolean alwaysShowNames, boolean wallpaperTrueColor, boolean focusOvershoot, String vpnApp,
+                   boolean showHomeSettingsShortcut, boolean showStats, boolean appLibrary, boolean appLibrarySelection, boolean libraryOkOpens, boolean uniformTiles, int backgroundColor,
                    int[] settingsKeycodes, boolean settingsKeyPanel, boolean restoreKeyServices, boolean wallpaperEnabled, File wallpaper, List<File> wallpapers,
                    int wallpaperRotationMinutes, int wallpaperDim, int dockOpacity, String wallpaperOrder, boolean overlayApplied,
-                   Festival festival, int[] inputKeycodes, List<String> appKeys, String stockHomeRedirect,
-                   List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, boolean appGlow, boolean fadeRows, int homeIdleClockMinutes,
+                   int[] inputKeycodes, List<String> appKeys, String stockHomeRedirect,
+                   boolean cinematicHome, boolean ambientGlow, boolean appGlow, boolean fadeRows, int homeIdleClockMinutes,
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean dockBand, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
-                   Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean volumePausesFilter, boolean homeIgnoreChannelKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly, boolean inputsCecStateOnly,
+                   boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean volumePausesFilter, boolean homeIgnoreChannelKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly, boolean inputsCecStateOnly,
                    int openOnStartNetworkWait, boolean openOnStartOnWake, boolean iconOnlyVpn, String clockFormat, boolean backOpensClock, boolean glowSnap,
                    boolean settingsKeyClearTask) {
         this.handleViewInputs = handleViewInputs;
@@ -328,14 +310,10 @@ final class Config {
         this.rowsBelowDock = rowsBelowDock;
         this.animations = animations;
         this.advancedEffects = advancedEffects;
-        this.shamsiDate = shamsiDate;
-        this.lunarDate = lunarDate;
-        this.lunarUtcOffset = lunarUtcOffset;
         this.dateBelowClock = dateBelowClock;
         this.vpnPill = vpnPill;
         this.locale = locale;
         this.greetingName = greetingName;
-        this.moduleCards = moduleCards;
         this.reducedMotion = reducedMotion;
         this.bootToLiveTv = bootToLiveTv;
         this.openOnStartChoice = openOnStartChoice;
@@ -361,13 +339,11 @@ final class Config {
         this.vpnApp = vpnApp;
         this.showHomeSettingsShortcut = showHomeSettingsShortcut;
         this.showStats = showStats;
-        this.gameDay = gameDay;
         this.appLibrary = appLibrary;
         this.appLibrarySelection = appLibrarySelection;
         this.libraryOkOpens = libraryOkOpens;
         this.uniformTiles = uniformTiles;
         this.backgroundColor = backgroundColor;
-        this.skyIntensity = skyIntensity;
         this.settingsKeycodes = settingsKeycodes;
         this.settingsKeyPanel = settingsKeyPanel;
         this.restoreKeyServices = restoreKeyServices;
@@ -379,8 +355,6 @@ final class Config {
         this.dockOpacity = dockOpacity;
         this.wallpaperOrder = wallpaperOrder;
         this.overlayApplied = overlayApplied;
-        this.festival = festival;
-        this.raceCalendar = Collections.unmodifiableList(raceCalendar);
         this.cinematicHome = cinematicHome;
         this.ambientGlow = ambientGlow;
         this.appGlow = appGlow;
@@ -394,7 +368,6 @@ final class Config {
         this.wifiStatusColor = wifiStatusColor;
         this.cinematicArt = cinematicArt;
         this.cinematicScrim = cinematicScrim;
-        this.wallpaperMoods = wallpaperMoods;
         this.gamepadPassthrough = gamepadPassthrough;
         this.consumeVolumeKeys = consumeVolumeKeys;
         this.volumePausesFilter = volumePausesFilter;
@@ -463,11 +436,7 @@ final class Config {
         int rowsBelow = res.getInteger(R.integer.rows_below_dock);
         boolean animations = res.getBoolean(R.bool.animations);
         boolean advancedEffects = res.getBoolean(R.bool.advanced_effects);
-        boolean shamsi = res.getBoolean(R.bool.shamsi_date);
-        boolean lunar = res.getBoolean(R.bool.lunar_date);
-        int lunarOffset = -1;
         String greetingName = res.getString(R.string.greeting_name).trim();
-        boolean moduleCards = res.getBoolean(R.bool.module_cards);
         boolean reducedMotion = res.getBoolean(R.bool.reduced_motion);
         boolean bootToLiveTv = res.getBoolean(R.bool.boot_to_live_tv);
         boolean openOnStartChoice = res.getBoolean(R.bool.open_on_start_choice);
@@ -497,13 +466,11 @@ final class Config {
         String vpn = res.getString(R.string.vpn_app).trim();
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
         boolean showStats = res.getBoolean(R.bool.show_stats);
-        String gameDay = res.getString(R.string.game_day).trim();
         boolean library = res.getBoolean(R.bool.app_library);
         boolean librarySelection = res.getBoolean(R.bool.app_library_selection);
         boolean libraryOkOpens = res.getBoolean(R.bool.library_ok_opens);
         boolean uniformTiles = res.getBoolean(R.bool.uniform_tiles);
         int background = 0xFF000000;
-        int skyIntensity = res.getInteger(R.integer.sky_intensity);
         int[] settingsKeycodes = res.getIntArray(R.array.settings_key_keycodes);
         boolean settingsKeyPanel = res.getBoolean(R.bool.settings_key_panel);
         boolean restoreKeyServices = res.getBoolean(R.bool.restore_key_services);
@@ -535,7 +502,6 @@ final class Config {
         boolean wifiStatusColor = res.getBoolean(R.bool.wifi_status_color);
         int cinematicArt = res.getInteger(R.integer.cinematic_art);
         int cinematicScrim = res.getInteger(R.integer.cinematic_scrim);
-        Map<String, Set<String>> wallpaperMoods = moods(res.getString(R.string.wallpaper_moods));
         String glowStyle = res.getString(R.string.glow_style);
         boolean wifiStatusWarnings = res.getBoolean(R.bool.wifi_status_warnings);
         boolean dateBelowClock = res.getBoolean(R.bool.date_below_clock);
@@ -580,11 +546,7 @@ final class Config {
             rowsBelow = integer(json, "rows_below_dock", rowsBelow, 0, 3);
             animations = bool(json, "animations", animations);
             advancedEffects = bool(json, "advanced_effects", advancedEffects);
-            shamsi = bool(json, "shamsi_date", shamsi);
-            lunar = bool(json, "lunar_date", lunar);
-            lunarOffset = integer(json, "lunar_utc_offset", lunarOffset, -1, 14);
             greetingName = string(json, "greeting_name", greetingName).trim();
-            moduleCards = bool(json, "module_cards", moduleCards);
             reducedMotion = bool(json, "reduced_motion", reducedMotion);
             bootToLiveTv = bool(json, "boot_to_live_tv", bootToLiveTv);
             openOnStartChoice = bool(json, "open_on_start_choice", openOnStartChoice);
@@ -614,13 +576,11 @@ final class Config {
             vpn = string(json, "vpn_app", vpn);
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
             showStats = bool(json, "show_stats", showStats);
-            gameDay = string(json, "game_day", gameDay);
             library = bool(json, "app_library", library);
             librarySelection = bool(json, "app_library_selection", librarySelection);
             libraryOkOpens = bool(json, "library_ok_opens", libraryOkOpens);
             uniformTiles = bool(json, "uniform_tiles", uniformTiles);
             background = color(json, "background_color", background);
-            skyIntensity = integer(json, "sky_intensity", skyIntensity, 0, 100);
             settingsKeycodes = intArray(json, "settings_key_keycodes", settingsKeycodes);
             settingsKeyPanel = bool(json, "settings_key_panel", settingsKeyPanel);
             restoreKeyServices = bool(json, "restore_key_services", restoreKeyServices);
@@ -652,8 +612,6 @@ final class Config {
             wifiStatusColor = bool(json, "wifi_status_color", wifiStatusColor);
             cinematicArt = integer(json, "cinematic_art", cinematicArt, 0, 100);
             cinematicScrim = integer(json, "cinematic_scrim", cinematicScrim, 0, 100);
-            JSONObject moods = json.optJSONObject("wallpaper_moods");
-            if (moods != null) wallpaperMoods = moods(moods);
             wifiStatusWarnings = bool(json, "wifi_status_warnings", wifiStatusWarnings);
             dateBelowClock = bool(json, "date_below_clock", dateBelowClock);
             vpnPill = bool(json, "vpn_pill", vpnPill);
@@ -712,57 +670,23 @@ final class Config {
             wallpaper = chosen.isEmpty() ? null : chosen.get(0);
             wallpaperEnabled = !chosen.isEmpty();
         }
-        // A festive skin comes only from a theme; config.xml has no festival. seasonal_skin names one the same way
-        // but launchers before it ignore the key, so a theme can carry it without older ones showing the diya skin.
-        Festival festival = json == null ? Festival.NONE : Festival.parse(festivalName(json),
-                string(json, "festival_until", ""), string(json, "greeting", ""), string(json, "accent_color", ""));
 
         return new Config(dock, fillDock, hidden, libraryApps, libraryExcludedApps, liveTv, liveTvAction, liveTvInputId, packageMap(launchActions), packageMap(appLabels),
                 packageMap(appBanners), panelService, panelAction, panelExtra, coocaaSources, inputAction, inputSources, inputUriScheme, Math.max(1, columns),
-                Math.max(0, rowsBelow), animations, advancedEffects, shamsi, greetingName, moduleCards, reducedMotion, bootToLiveTv,
+                Math.max(0, rowsBelow), animations, advancedEffects, greetingName, reducedMotion, bootToLiveTv,
                 openOnStartChoice, dockTitle, dockRow, topMenu, launcherSettingsButton, reorderButton, showNetworkPill, showInputsPill,
                 iconOnlyButtons, iconOnlyInputs, libraryButton, showLibraryPill, wifiLabelWidth, alwaysShowNames, wallpaperTrueColor, focusOvershoot,
-                vpn, homeSettings, showStats, gameDay, library, librarySelection, libraryOkOpens, uniformTiles, background,
-                Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, restoreKeyServices, wallpaperEnabled, wallpaper,
-                wallpapers, rotationMinutes, wallpaperDim, dockOpacity, wallpaperOrder, applied, festival, inputKeycodes, appKeys, stockHomeRedirect,
-                json == null ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow, appGlow, fadeRows,
+                vpn, homeSettings, showStats, library, librarySelection, libraryOkOpens, uniformTiles, background,
+                settingsKeycodes, settingsKeyPanel, restoreKeyServices, wallpaperEnabled, wallpaper,
+                wallpapers, rotationMinutes, wallpaperDim, dockOpacity, wallpaperOrder, applied, inputKeycodes, appKeys, stockHomeRedirect,
+                cinematic, ambientGlow, appGlow, fadeRows,
                 Math.max(0, idleClockMinutes), keyFilter, dockGlass, glowStyle, wallpaperCaptions, handleViewInputs, tileMenu, dockEvenPadding,
-                dockBand, cinematicDots, cinematicWhiteFocus, wifiStatusColor, cinematicScrim, cinematicArt, wallpaperMoods, gamepadPassthrough,
+                dockBand, cinematicDots, cinematicWhiteFocus, wifiStatusColor, cinematicScrim, cinematicArt, gamepadPassthrough,
                 consumeVolumeKeys, volumePausesFilter, homeIgnoreChannelKeys, powerOnHome, homeLongPressHome, wifiStatusWarnings, topBarApps, showGreeting, headerWhite, clockWallpaper,
-                Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
+                Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll,
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly, inputsCecStateOnly,
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), openOnStartOnWake, iconOnlyVpn, clockFormat, backOpensClock, glowSnap,
                 settingsKeyClearTask);
-    }
-
-    /**
-     * {@code "race_calendar": [{"round": 18, "name": "United States Grand Prix", "place": "Austin",
-     * "sessions": [{"name": "FP1", "start": "2026-10-23T17:30:00Z"}, ...]}, ...]}. A race or session that does
-     * not parse is left out on its own; the rest of the calendar still counts.
-     */
-    private static List<RaceWeekend.Race> raceCalendar(JSONObject json) {
-        List<RaceWeekend.Race> races = new ArrayList<>();
-        JSONArray list = json.optJSONArray("race_calendar");
-        if (list == null) return races;
-        for (int i = 0; i < list.length(); i++) {
-            JSONObject r = list.optJSONObject(i);
-            JSONArray sessions = r == null ? null : r.optJSONArray("sessions");
-            if (sessions == null) continue;
-            List<RaceWeekend.Session> parsed = new ArrayList<>();
-            for (int j = 0; j < sessions.length(); j++) {
-                JSONObject s = sessions.optJSONObject(j);
-                if (s == null) continue;
-                String name = s.optString("name", "").trim();
-                try {
-                    if (!name.isEmpty()) parsed.add(new RaceWeekend.Session(name, java.time.Instant.parse(s.optString("start", ""))));
-                } catch (java.time.format.DateTimeParseException ignored) {
-                    // a session without a readable start time cannot be counted down
-                }
-            }
-            if (!parsed.isEmpty()) races.add(new RaceWeekend.Race(r.optInt("round", 0),
-                    r.optString("name", "Grand Prix").trim(), r.optString("place", "").trim(), parsed));
-        }
-        return races;
     }
 
     private static void syncThemeChoices(SharedPreferences choices, File dir, File config) {
@@ -846,42 +770,11 @@ final class Config {
         }
     }
 
-    /** wallpaper_moods as JSON text (config.xml); empty or unreadable is no groups. */
-    private static Map<String, Set<String>> moods(String text) {
-        if (text.trim().isEmpty()) return Collections.emptyMap();
-        try {
-            return moods(new JSONObject(text));
-        } catch (JSONException e) {
-            return Collections.emptyMap();
-        }
-    }
-
-    /** {"night": ["03-moon-lake.jpg", ...], ...}: each mood's picture names; other keys and names are left out. */
-    private static Map<String, Set<String>> moods(JSONObject o) {
-        Map<String, Set<String>> groups = new HashMap<>();
-        for (String mood : WallpaperMood.ALL) {
-            JSONArray names = o.optJSONArray(mood);
-            if (names == null) continue;
-            Set<String> group = new HashSet<>();
-            for (int i = 0; i < names.length(); i++) {
-                String name = names.optString(i, "").trim();
-                if (ThemeFiles.collectionImage(name)) group.add(name);
-            }
-            if (!group.isEmpty()) groups.put(mood, Collections.unmodifiableSet(group));
-        }
-        return Collections.unmodifiableMap(groups);
-    }
-
     private static String string(JSONObject o, String key, String fallback) {
         Object v = o.opt(key);
         return v instanceof String ? ((String) v).trim() : fallback;
     }
 
-    /** The theme's festival: {@code festival}, or {@code seasonal_skin} when that is empty or missing. */
-    static String festivalName(JSONObject o) {
-        String name = string(o, "festival", "");
-        return name.isEmpty() ? string(o, "seasonal_skin", "") : name;
-    }
 
     private static boolean bool(JSONObject o, String key, boolean fallback) {
         Object v = o.opt(key);

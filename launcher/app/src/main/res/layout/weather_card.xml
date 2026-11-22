@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One weather card above the dock, in the shape of a medium weather widget: the city and temperature left, the
+     sky and today's high and low right, the next five days under a line. Filled in MainActivity (fillCard). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="260dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/weather_card_bg"
+    android:paddingStart="18dp"
+    android:paddingEnd="18dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="12dp"
+    android:visibility="gone">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/cardCity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textColor="#FFFFFFFF"
+                android:textSize="14sp"
+                android:fontFamily="@string/font_medium" />
+
+            <TextView
+                android:id="@+id/cardTemp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFFFF"
+                android:textSize="40sp"
+                android:fontFamily="@string/font_light"
+                android:fontFeatureSettings="tnum"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/cardIcon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/cardSky"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:singleLine="true"
+                android:maxWidth="120dp"
+                android:ellipsize="end"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp"
+                android:fontFamily="@string/font_medium" />
+
+            <TextView
+                android:id="@+id/cardHighLow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textColor="#B3FFFFFF"
+                android:textSize="12sp"
+                android:fontFamily="@string/font_medium" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="8dp"
+        android:background="#2EFFFFFF" />
+
+    <!-- The next five days: a column each (weekday, icon, high, low), added in code. -->
+    <LinearLayout
+        android:id="@+id/cardDays"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal" />
+</LinearLayout>

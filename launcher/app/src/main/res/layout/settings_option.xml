@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One choice in the right pane: label and a radio mark (activated = current). -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
+    android:layout_marginTop="2dp"
+    android:paddingStart="20dp"
+    android:paddingEnd="20dp"
+    android:gravity="center_vertical"
+    android:background="@drawable/tv_row_bg"
+    android:drawableEnd="@drawable/tv_radio"
+    android:singleLine="true"
+    android:ellipsize="end"
+    android:textColor="@color/tv_row_title"
+    android:textSize="17sp"
+    android:focusable="false"
+    android:clickable="true" />

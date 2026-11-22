@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- City picker for the second clock (WorldClock): type a city, then Down to the results and OK. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/glass_panel"
+    android:paddingStart="26dp"
+    android:paddingEnd="26dp"
+    android:paddingTop="22dp"
+    android:paddingBottom="20dp"
+    android:elevation="12dp">
+
+    <TextView
+        android:id="@+id/pickerTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#FFFFFFFF"
+        android:textSize="22sp"
+        android:fontFamily="@string/font_medium" />
+
+    <EditText
+        android:id="@+id/cityInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:hint="@string/world_clock_hint"
+        android:inputType="textCapWords|textNoSuggestions"
+        android:imeOptions="actionSearch|flagNoExtractUi"
+        android:singleLine="true"
+        android:textColor="#FFFFFFFF"
+        android:textColorHint="#80FFFFFF"
+        android:textSize="18sp"
+        android:fontFamily="@string/font_regular" />
+
+    <ListView
+        android:id="@+id/cityList"
+        android:layout_width="match_parent"
+        android:layout_height="260dp"
+        android:layout_marginTop="10dp"
+        android:divider="@null"
+        android:listSelector="@drawable/world_clock_bg"
+        android:drawSelectorOnTop="false" />
+</LinearLayout>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Bluetooth pill's icon while Bluetooth is on and nothing is connected, blue; dark on the focused pill. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="#FF111111" />
+    <item android:color="#FF0A84FF" />
+</selector>

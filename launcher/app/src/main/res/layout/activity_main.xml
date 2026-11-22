@@ -5,13 +5,6 @@
     android:layout_height="match_parent"
     android:background="#FF000000">
 
-    <!-- Time-of-day backdrop, drawn once a minute (config.xml sky_intensity; 0 keeps it hidden). -->
-    <com.gathin.tvhome.SkyView
-        android:id="@+id/sky"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:importantForAccessibility="no" />
-
     <!-- Cinematic top shelf (cinematic_home): the focused dock app's artwork, a few pixels across and
          stretched over the screen, which softens it like a blur without the cost of one. Hidden otherwise. -->
     <ImageView
@@ -29,80 +22,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:alpha="0" />
-
-    <!-- Race-weekend panel (a theme's race_calendar, see RaceWeekend): in the free space under the clock,
-         shown only from shortly before a weekend's first session until the race is over. Updated once a
-         minute with the clock, never animated. -->
-    <LinearLayout
-        android:id="@+id/racePanel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|left"
-        android:layout_marginStart="60dp"
-        android:layout_marginTop="158dp"
-        android:orientation="vertical"
-        android:focusable="false"
-        android:importantForAccessibility="no"
-        android:visibility="gone">
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <!-- A short kerb-red bar, the panel's one accent. -->
-            <View
-                android:layout_width="3dp"
-                android:layout_height="13dp"
-                android:layout_marginEnd="10dp"
-                android:id="@+id/raceBar"
-                android:background="@drawable/race_bar" />
-
-            <TextView
-                android:id="@+id/raceKicker"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:textColor="#B3FFFFFF"
-                android:textSize="12sp"
-                android:fontFamily="@string/font_medium"
-                android:letterSpacing="0.22"
-                android:textAllCaps="true" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/raceHeadline"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:singleLine="true"
-            android:textColor="#FFFFFFFF"
-            android:textSize="34sp"
-            android:fontFamily="@string/font_light"
-            android:letterSpacing="-0.01"
-            android:includeFontPadding="false" />
-
-        <TextView
-            android:id="@+id/raceSessions"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:singleLine="true"
-            android:textColor="#99FFFFFF"
-            android:textSize="12sp"
-            android:fontFamily="@string/font_medium"
-            android:letterSpacing="0.12" />
-
-        <!-- game_day: one dot per turn when the panel rotates between games (and the F1 weekend). -->
-        <LinearLayout
-            android:id="@+id/racePager"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:orientation="horizontal"
-            android:visibility="gone" />
-    </LinearLayout>
 
     <!-- Cinematic top shelf: darkens the edge behind the shelf and the lower half, so the text and the
          dock stay readable over the artwork. -->
@@ -154,6 +73,34 @@
             android:layout_marginTop="16dp"
             android:orientation="horizontal"
             android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Weather cards from the Weather add-on (WeatherNow): the main city, then the second one, right of the dock
+         app's name with their bottoms level with it, placed in code. Hidden with the name; a card without a city
+         is gone. -->
+    <LinearLayout
+        android:id="@+id/weatherNow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginEnd="68dp"
+        android:orientation="horizontal"
+        android:gravity="bottom"
+        android:alpha="0"
+        android:visibility="gone">
+
+        <include
+            android:id="@+id/weatherCard1"
+            layout="@layout/weather_card"
+            android:layout_width="260dp"
+            android:layout_height="wrap_content" />
+
+        <include
+            android:id="@+id/weatherCard2"
+            layout="@layout/weather_card"
+            android:layout_width="260dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp" />
     </LinearLayout>
 
     <LinearLayout
@@ -212,7 +159,7 @@
                         android:format12Hour="h:mm"
                         android:format24Hour="HH:mm"
                         android:textColor="#FFFFFFFF"
-                        android:textSize="52sp"
+                        android:textSize="40sp"
                         android:fontFamily="@string/font_light"
                         android:letterSpacing="-0.04"
                         android:fontFeatureSettings="tnum"
@@ -224,14 +171,127 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
                         android:layout_gravity="bottom"
-                        android:layout_marginBottom="8dp"
+                        android:layout_marginBottom="6dp"
                         android:format12Hour="a"
                         android:format24Hour=""
                         android:textColor="#B3FFFFFF"
-                        android:textSize="15sp"
+                        android:textSize="12sp"
                         android:fontFamily="@string/font_medium"
                         android:letterSpacing="0.08"
                         android:textAllCaps="true" />
+
+                    <!-- Second clock (world_clock): a city's time at 60% of the clock's size, set in code. Display
+                         only; the city is picked in Launcher settings (WorldClock). -->
+                    <LinearLayout
+                        android:id="@+id/worldClock"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom"
+                        android:layout_marginStart="26dp"
+                        android:orientation="vertical"
+                        android:focusable="false"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/worldCity"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:singleLine="true"
+                            android:textColor="#B3FFFFFF"
+                            android:textSize="12sp"
+                            android:fontFamily="@string/font_medium"
+                            android:letterSpacing="0.12"
+                            android:textAllCaps="true" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <TextClock
+                                android:id="@+id/worldTime"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:singleLine="true"
+                                android:format12Hour="h:mm"
+                                android:format24Hour="HH:mm"
+                                android:textColor="#FFFFFFFF"
+                                android:fontFamily="@string/font_light"
+                                android:letterSpacing="-0.04"
+                                android:fontFeatureSettings="tnum"
+                                android:includeFontPadding="false" />
+
+                            <TextClock
+                                android:id="@+id/worldAmpm"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="5dp"
+                                android:layout_gravity="bottom"
+                                android:layout_marginBottom="5dp"
+                                android:format12Hour="a"
+                                android:format24Hour=""
+                                android:textColor="#B3FFFFFF"
+                                android:textSize="12sp"
+                                android:fontFamily="@string/font_medium"
+                                android:textAllCaps="true" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Third clock: the same block, its own city (slot 3). -->
+                    <LinearLayout
+                        android:id="@+id/worldClock3"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom"
+                        android:layout_marginStart="26dp"
+                        android:orientation="vertical"
+                        android:focusable="false"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@id/worldCity"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:singleLine="true"
+                            android:textColor="#B3FFFFFF"
+                            android:textSize="12sp"
+                            android:fontFamily="@string/font_medium"
+                            android:letterSpacing="0.12"
+                            android:textAllCaps="true" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <TextClock
+                                android:id="@id/worldTime"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:singleLine="true"
+                                android:format12Hour="h:mm"
+                                android:format24Hour="HH:mm"
+                                android:textColor="#FFFFFFFF"
+                                android:fontFamily="@string/font_light"
+                                android:letterSpacing="-0.04"
+                                android:fontFeatureSettings="tnum"
+                                android:includeFontPadding="false" />
+
+                            <TextClock
+                                android:id="@id/worldAmpm"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="5dp"
+                                android:layout_gravity="bottom"
+                                android:layout_marginBottom="5dp"
+                                android:format12Hour="a"
+                                android:format24Hour=""
+                                android:textColor="#B3FFFFFF"
+                                android:textSize="12sp"
+                                android:fontFamily="@string/font_medium"
+                                android:textAllCaps="true" />
+                        </LinearLayout>
+                    </LinearLayout>
 
                     <View
                         android:id="@+id/clockDivider"
@@ -251,20 +311,6 @@
                         android:layout_marginBottom="9dp"
                         android:orientation="vertical">
 
-                        <!-- Shamsi date ("27 Mehr 1405"), shown when shamsi_date is on. -->
-                        <TextView
-                            android:id="@+id/shamsiDate"
-                            android:gravity="left"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:singleLine="true"
-                            android:ellipsize="end"
-                            android:textColor="#E6FFFFFF"
-                            android:textSize="17sp"
-                            android:fontFamily="@string/font_regular"
-                            android:letterSpacing="0.02"
-                            android:includeFontPadding="false"
-                            android:visibility="gone" />
 
                         <TextClock
                             android:id="@+id/date"
@@ -283,21 +329,6 @@
                             android:letterSpacing="0.14"
                             android:textAllCaps="true" />
 
-                        <!-- Lunar date ("Lunar 13/9 · Year of the Horse"), shown when lunar_date is on. -->
-                        <TextView
-                            android:id="@+id/lunarDate"
-                            android:gravity="left"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:singleLine="true"
-                            android:ellipsize="end"
-                            android:textColor="#80FFFFFF"
-                            android:textSize="14sp"
-                            android:fontFamily="@string/font_regular"
-                            android:letterSpacing="0.14"
-                            android:textAllCaps="true"
-                            android:visibility="gone" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -308,17 +339,18 @@
             <TextView
                 android:id="@+id/stats"
                 android:layout_width="wrap_content"
-                android:layout_below="@id/leftBlock"
-                android:layout_alignStart="@id/leftBlock"
-                android:gravity="left"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentEnd="true"
+                android:layout_marginEnd="8dp"
+                android:gravity="right"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
                 android:singleLine="true"
                 android:ellipsize="end"
-                android:textColor="#D9FFFFFF"
-                android:textSize="14sp"
+                android:textColor="#8CFFFFFF"
+                android:textSize="12sp"
                 android:fontFamily="@string/font_medium"
-                android:letterSpacing="0.04"
+                android:letterSpacing="0.22"
+                android:textAllCaps="true"
                 android:focusable="false"
                 android:visibility="gone" />
 
@@ -340,10 +372,21 @@
                     android:drawableStart="@drawable/ic_input"
                     android:nextFocusDown="@+id/grid" />
 
+                <!-- Bluetooth status only (on, or struck through when off); OK opens the TV's Bluetooth page. -->
+                <TextView
+                    android:id="@+id/btnBluetooth"
+                    style="@style/TopButtonIcon"
+                    android:contentDescription="@string/bluetooth"
+                    android:drawableStart="@drawable/ic_bluetooth"
+                    android:nextFocusDown="@+id/grid" />
+
                 <TextView
                     android:id="@+id/btnWifi"
                     style="@style/TopButton"
                     android:maxWidth="180dp"
+                    android:textSize="13sp"
+                    android:drawablePadding="6dp"
+                    android:paddingEnd="16dp"
                     android:singleLine="true"
                     android:ellipsize="end"
                     android:text="@string/wifi"
