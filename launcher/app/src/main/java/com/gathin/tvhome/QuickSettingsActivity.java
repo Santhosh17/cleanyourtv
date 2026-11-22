@@ -41,6 +41,11 @@ public final class QuickSettingsActivity extends Activity {
         findViewById(R.id.scrim).setOnClickListener(v -> finish());
         LinearLayout rows = findViewById(R.id.rows);
         addRow(rows, R.drawable.ic_settings, R.string.tv_settings, 0, SystemSettings.intent(this, Settings.ACTION_SETTINGS));
+        // Hisense's own horizontal quick menu (Picture, Sound, Audio Output, Sleep Timer...), where the firmware has it.
+        Intent tvMenu = new Intent("com.hisense.android.tv.APPLICATION_MENU");
+        if (tvMenu.resolveActivity(getPackageManager()) != null) {
+            addRow(rows, R.drawable.ic_quick_menu, R.string.quick_tv_menu, 0, tvMenu);
+        }
         addRow(rows, R.drawable.ic_picture, R.string.quick_picture, 0, SystemSettings.displayIntent(this));
         // Android TV Settings' Audio output page (TV speaker, ARC/eARC, digital out), where the firmware has it.
         Intent audioOutput = new Intent("android.settings.AUDIO_OUTPUT_SETTINGS");
