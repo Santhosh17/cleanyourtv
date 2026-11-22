@@ -69,6 +69,10 @@ final class Forecast {
         /** Today's sunrise and sunset as local "HH:mm" at the place ("" if not read), and today's WMO code (-1). */
         String sunrise = "", sunset = "";
         int todayCode = -1;
+        /** The UV index now, rounded (-1 unknown), from the air quality model (the ICON weather models have none). */
+        int uv = -1;
+        /** Where the wind blows from, degrees clockwise from north (-1 unknown). */
+        int windDir = -1;
         /** Rain chance (%, -1 unknown) and amount (mm) per day, today first; and the next 2 hours in 15-minute mm. */
         final List<int[]> rainChance = new ArrayList<>();
         final List<Double> rainMm = new ArrayList<>();
@@ -132,7 +136,8 @@ final class Forecast {
         // DWD's ICON model: Open-Meteo's default blend called light snow over Ulaanbaatar "overcast" while ICON,
         // and Google, had snow falling.
         JSONObject reply = get("https://api.open-meteo.com/v1/forecast?" + where + "&models=icon_seamless"
-                + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,is_day,wind_speed_10m"
+                + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,is_day,wind_speed_10m,"
+                + "wind_direction_10m"
                 + "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_probability_max,"
                 + "precipitation_sum&minutely_15=precipitation&forecast_minutely_15=8&timezone=auto&forecast_days="
                 + (forecastDays(days) + 1));
@@ -140,10 +145,13 @@ final class Forecast {
         double temp = current.getDouble("temperature_2m");
         double humidity = current.getDouble("relative_humidity_2m");
         int code = snowIfCold(current.getInt("weather_code"), temp, humidity);
+        int[] air = airQuality(where);
         Report report = new Report(temp, current.getDouble("apparent_temperature"),
                 code, current.getInt("is_day") == 1,
-                days(reply.getJSONObject("daily")), aqiOrUnknown(where),
+                days(reply.getJSONObject("daily")), air[0],
                 (int) Math.round(humidity), (int) Math.round(current.optDouble("wind_speed_10m", 0)));
+        report.uv = air[1];
+        if (!current.isNull("wind_direction_10m")) report.windDir = (int) Math.round(current.getDouble("wind_direction_10m"));
         JSONObject daily = reply.getJSONObject("daily");
         if (!daily.getJSONArray("temperature_2m_max").isNull(0)) {
             report.todayMaxC = daily.getJSONArray("temperature_2m_max").getDouble(0);
@@ -206,13 +214,15 @@ final class Forecast {
         return out;
     }
 
-    private static int aqiOrUnknown(String where) {
+    /** {US AQI, UV index rounded}, each -1 when unknown or the read failed. */
+    private static int[] airQuality(String where) {
         try {
             JSONObject current = get("https://air-quality-api.open-meteo.com/v1/air-quality?" + where
-                    + "&current=us_aqi").getJSONObject("current");
-            return current.isNull("us_aqi") ? -1 : current.getInt("us_aqi");
+                    + "&current=us_aqi,uv_index").getJSONObject("current");
+            return new int[]{current.isNull("us_aqi") ? -1 : current.getInt("us_aqi"),
+                    current.isNull("uv_index") ? -1 : (int) Math.round(current.getDouble("uv_index"))};
         } catch (IOException | JSONException e) {
-            return -1;
+            return new int[]{-1, -1};
         }
     }
 

@@ -44,10 +44,22 @@
     <string name="bluetooth_off" translatable="false">Bluetooth off</string>
     <string name="bluetooth_connected" translatable="false">Bluetooth on, device connected</string>
     <string name="weather_degrees" translatable="false">%1$d°</string>
+    <!-- A weather card's temperature: Celsius, then Fahrenheit (drawn at 55%). -->
+    <string name="weather_temp_cf" translatable="false">%1$d°C %2$d°F</string>
     <string name="weather_high_low" translatable="false">H:%1$d° L:%2$d°</string>
     <string name="weather_feels" translatable="false">Feels %1$d°</string>
+    <string name="weather_feels_humidity" translatable="false">Feels %1$d° · 💦 %2$d%%</string>
+    <string name="weather_wind" translatable="false">💨 %1$s %2$d km/h</string>
     <string name="weather_aqi" translatable="false">AQI %1$d · %2$s</string>
     <string name="weather_sun" translatable="false">🌅 %1$s   🌇 %2$s</string>
+    <string name="weather_uv" translatable="false">UV %1$d · %2$s</string>
+    <string-array name="uv_short" translatable="false">
+        <item>Low</item>
+        <item>Moderate</item>
+        <item>High</item>
+        <item>Very high</item>
+        <item>Extreme</item>
+    </string-array>
     <string-array name="aqi_short" translatable="false">
         <item>Good</item>
         <item>Moderate</item>
@@ -69,10 +81,8 @@
     <string name="world_clock_hint" translatable="false">Type a city, e.g. London, Dubai, New York</string>
     <string name="stats_cpu">CPU %1$d%%</string>
     <string name="stats_memory">⚡ %1$d / %2$d MB</string>
-    <!-- Live network speed, all connections: down then up, e.g. "↓ 1.2 MB/s  ↑ 40 KB/s". -->
+    <!-- Live network speed per second, all connections: down then up, e.g. "↓ 2.4M  ↑ 85K" (StatsText.speed). -->
     <string name="stats_net" translatable="false">↓ %1$s  ↑ %2$s</string>
-    <string name="speed_kb" translatable="false">%1$d KB/s</string>
-    <string name="speed_mb" translatable="false">%1$.1f MB/s</string>
     <string name="stats_storage">🗄️ %1$s free</string>
     <string name="storage_gb_whole">%1$.0f GB</string>
     <string name="storage_gb_decimal">%1$.1f GB</string>

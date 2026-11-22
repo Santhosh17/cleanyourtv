@@ -18,6 +18,12 @@ final class WeatherNow {
     final String city;
     /** Null until the add-on has a reading for the city; high and low also with an older add-on. */
     final Integer temp, feels, high, low;
+    /** The temperature in °C and °F, each rounded from the exact reading; null with an older add-on. */
+    final Integer tempC, tempF;
+    /** The UV index now, null when unknown. */
+    final Integer uv;
+    /** Humidity %, wind km/h, the direction the wind comes from (degrees) and feels-like °C; each null when unknown. */
+    final Integer humidity, wind, windDir, feelsC;
     final String sky;
     /** WMO weather code and day (false at night), for the icon. */
     final int code;
@@ -37,6 +43,14 @@ final class WeatherNow {
     private WeatherNow(Cursor c) {
         city = string(c, "city");
         temp = integer(c, "temp");
+        tempC = integer(c, "tempc");
+        tempF = integer(c, "tempf");
+        Integer uvOrNull = integer(c, "uv");
+        uv = uvOrNull == null || uvOrNull < 0 ? null : uvOrNull;
+        humidity = known(integer(c, "humidity"));
+        wind = known(integer(c, "wind"));
+        windDir = known(integer(c, "winddir"));
+        feelsC = integer(c, "feelsc");
         feels = integer(c, "feels");
         high = integer(c, "high");
         low = integer(c, "low");
@@ -85,6 +99,35 @@ final class WeatherNow {
         return i < 0 || c.isNull(i) ? null : c.getString(i);
     }
 
+    private static Integer known(Integer i) {
+        return i == null || i < 0 ? null : i;
+    }
+
+    /** "NW" for a wind from 315°: eight compass points. */
+    static String compass(int degrees) {
+        return new String[]{"N", "NE", "E", "SE", "S", "SW", "W", "NW"}[Math.round(((degrees % 360) + 360) % 360 / 45f) % 8];
+    }
+
+    /**
+     * What to wear, from feels-like °C, then ☂️ when rain is likely and 🧴 for a strong sun:
+     * "🧣 Coat" (5° and below), "🧥 Jacket" (to 12°), "🧥 Light jacket" (to 18°), "👕 T-shirt" (to 27°), "🩳 Shorts".
+     */
+    static String wear(int feelsC, boolean rainy, boolean strongSun) {
+        String s = feelsC <= 5 ? "\uD83E\uDDE3 Coat" : feelsC <= 12 ? "\uD83E\uDDE5 Jacket"
+                : feelsC <= 18 ? "\uD83E\uDDE5 Light jacket" : feelsC <= 27 ? "\uD83D\uDC55 T-shirt" : "\uD83E\uDE73 Shorts";
+        if (rainy) s += " \u2602\uFE0F";
+        if (strongSun) s += " \uD83E\uDDF4";
+        return s;
+    }
+
+    /** The card's advice: rain at 50% today or on the 2-hour timeline, sunscreen at UV 6 and up by day. Null unknown. */
+    String wear() {
+        if (feelsC == null) return null;
+        boolean rainy = rainChance >= 50;
+        for (double mm : next2h) rainy |= wet(mm);
+        return wear(feelsC, rainy, day && uv != null && uv >= 6);
+    }
+
     private static String empty(String s) {
         return s == null || s.isEmpty() ? null : s;
     }
@@ -121,6 +164,11 @@ final class WeatherNow {
         if (change < next2h.length) return "\u2614 Rain in " + change * 15 + " min";
         String w = warning();
         return w != null ? w : "No rain next 2 h";
+    }
+
+    /** WHO UV band 0-4: low (0-2), moderate (3-5), high (6-7), very high (8-10), extreme (11+). */
+    static int uvBand(int uv) {
+        return uv <= 2 ? 0 : uv <= 5 ? 1 : uv <= 7 ? 2 : uv <= 10 ? 3 : 4;
     }
 
     /** US AQI band 0-5: good, moderate, unhealthy for sensitive groups, unhealthy, very unhealthy, hazardous. */

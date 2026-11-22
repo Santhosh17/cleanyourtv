@@ -2235,21 +2235,51 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         card.setVisibility(shown ? View.VISIBLE : View.GONE);
         if (!shown) return false;
         ((TextView) card.findViewById(R.id.cardCity)).setText(w.city);
-        ((TextView) card.findViewById(R.id.cardTemp)).setText(getString(R.string.weather_degrees, w.temp));
-        ((TextView) card.findViewById(R.id.cardIcon)).setText(WeatherNow.icon(w.code, w.day));
-        ((TextView) card.findViewById(R.id.cardSky)).setText(w.sky);
+        TextView temp = card.findViewById(R.id.cardTemp);
+        if (w.tempC == null || w.tempF == null) {
+            temp.setText(getString(R.string.weather_degrees, w.temp));   // an older add-on: its own unit only
+        } else {   // "27°" and, at 55%, "81°", each with its unit letter small under the degree sign
+            android.text.SpannableString t = new android.text.SpannableString(
+                    getString(R.string.weather_temp_cf, w.tempC, w.tempF));
+            String s = t.toString();
+            int f = s.lastIndexOf(' ') + 1;
+            t.setSpan(new android.text.style.RelativeSizeSpan(0.55f), f, t.length(), 0);
+            int c = s.indexOf('\u00B0'), fDegree = s.lastIndexOf('\u00B0');
+            t.setSpan(new DegreeSpan(0.3f), c, c + 2, 0);
+            t.setSpan(new DegreeSpan(0.4f), fDegree, fDegree + 2, 0);   // keeps the small F as readable as the C
+            temp.setText(t);
+        }
+        ((TextView) card.findViewById(R.id.cardSky)).setText(WeatherNow.icon(w.code, w.day) + " " + w.sky);
         TextView highLow = card.findViewById(R.id.cardHighLow);
         highLow.setText(w.high == null || w.low == null ? getString(R.string.weather_feels, w.feels)
                 : getString(R.string.weather_high_low, w.high, w.low));
+        TextView feels = card.findViewById(R.id.cardFeels);
+        feels.setVisibility(w.feels == null || w.high == null ? View.GONE : View.VISIBLE);   // else H/L shows it
+        if (w.feels != null) feels.setText(w.humidity == null ? getString(R.string.weather_feels, w.feels)
+                : getString(R.string.weather_feels_humidity, w.feels, w.humidity));
+        TextView wind = card.findViewById(R.id.cardWind);
+        wind.setVisibility(w.wind == null ? View.GONE : View.VISIBLE);
+        if (w.wind != null) wind.setText(getString(R.string.weather_wind,
+                w.windDir == null ? "" : WeatherNow.compass(w.windDir), w.wind));
+        String wearing = w.wear();
+        TextView wear = card.findViewById(R.id.cardWear);
+        wear.setVisibility(wearing == null ? View.GONE : View.VISIBLE);
+        wear.setText(wearing);
+        TextView uv = card.findViewById(R.id.cardUv);
+        boolean showUv = w.uv != null && w.day;   // 0 all night says nothing
+        uv.setVisibility(showUv ? View.VISIBLE : View.INVISIBLE);   // the blank keeps both cards one height
+        if (showUv) {
+            int band = WeatherNow.uvBand(w.uv);
+            uv.setText(getString(R.string.weather_uv, w.uv, getResources().getStringArray(R.array.uv_short)[band]));
+            uv.setBackground(pill(UV_COLOURS[band]));
+            uv.setTextColor(band == 1 ? 0xFF1A1A1A : 0xFFFFFFFF);   // dark on the yellow band
+        }
         TextView aqi = card.findViewById(R.id.cardAqi);
         aqi.setVisibility(w.aqi == null ? View.GONE : View.VISIBLE);
         if (w.aqi != null) {
             int band = WeatherNow.aqiBand(w.aqi);
             aqi.setText(getString(R.string.weather_aqi, w.aqi, getResources().getStringArray(R.array.aqi_short)[band]));
-            GradientDrawable pill = new GradientDrawable();
-            pill.setCornerRadius(10 * density);
-            pill.setColor(AQI_COLOURS[band]);
-            aqi.setBackground(pill);
+            aqi.setBackground(pill(AQI_COLOURS[band]));
             aqi.setTextColor(band == 1 ? 0xFF1A1A1A : 0xFFFFFFFF);   // dark on the yellow band
         }
         ((TextView) card.findViewById(R.id.cardSun)).setText(w.sunrise == null || w.sunset == null ? ""
@@ -2296,6 +2326,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         return true;
     }
+
+    private GradientDrawable pill(int colour) {
+        GradientDrawable pill = new GradientDrawable();
+        pill.setCornerRadius(10 * density);
+        pill.setColor(colour);
+        return pill;
+    }
+
+    /** WHO UV band colours: low green, moderate yellow, high orange, very high red, extreme purple. */
+    private static final int[] UV_COLOURS = {0xE643A047, 0xE6FBC02D, 0xE6FB8C00, 0xE6E53935, 0xE68E24AA};
 
     /** US AQI band colours, as the Weather app's own pill (good to hazardous). */
     private static final int[] AQI_COLOURS = {0xE643A047, 0xE6FBC02D, 0xE6FB8C00, 0xE6E53935, 0xE68E24AA, 0xE67E0023};
@@ -2346,7 +2386,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Just above the dock (lower than the dock app's name, to keep clear of the pills), shown with it ({@code show}). */
     private void placeWeather(boolean show) {
         if (!hasWeather || lastDockTop < 0) return;
-        weatherNow.setY(lastDockTop - 26 * density - weatherNow.getHeight());
+        weatherNow.setY(lastDockTop - 20 * density - weatherNow.getHeight());
         if (show) {
             weatherNow.setAlpha(1f);
             animateWeather(true);
@@ -2521,20 +2561,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         String out = null;
         if (netAtPrev != 0 && at > netAtPrev) {
             double secs = (at - netAtPrev) / 1000.0;
-            out = getString(R.string.stats_net, speed(Math.max(0, rx - netRxPrev) / secs),
-                    speed(Math.max(0, tx - netTxPrev) / secs));
+            out = getString(R.string.stats_net, StatsText.speed(Math.max(0, rx - netRxPrev) / secs),
+                    StatsText.speed(Math.max(0, tx - netTxPrev) / secs));
             if (!netFlag.isEmpty()) out = netFlag + "  " + out;   // the country first, then its speeds
         }
         netRxPrev = rx;
         netTxPrev = tx;
         netAtPrev = at;
         return out;
-    }
-
-    /** Bytes per second as KB/s below 1 MB/s, else MB/s with one decimal. */
-    private String speed(double bytesPerSec) {
-        double kb = bytesPerSec / 1024;
-        return kb < 1024 ? getString(R.string.speed_kb, Math.round(kb)) : getString(R.string.speed_mb, kb / 1024);
     }
 
     // -1: need another sample. -2: this source cannot be read (Android 9 hides /proc/stat from apps).

@@ -2,7 +2,7 @@
 <!-- One weather card above the dock, in the shape of a medium weather widget: the city and temperature left, the
      sky and today's high and low right, air quality and sun times, rain chance and amount, the next 2 hours, the reading time, the next five days under a line. Filled in MainActivity (fillCard). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="260dp"
+    android:layout_width="280dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/weather_card_bg"
@@ -21,6 +21,7 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
             android:orientation="vertical">
 
             <TextView
@@ -39,10 +40,26 @@
                 android:layout_height="wrap_content"
                 android:textColor="#FFFFFFFF"
                 android:textSize="40sp"
+                android:singleLine="true"
                 android:fontFamily="@string/font_light"
                 android:fontFeatureSettings="tnum"
                 android:letterSpacing="-0.02"
                 android:includeFontPadding="false" />
+            <!-- The UV index now (coloured by WHO band), under the temperature and above the air quality;
+                 kept as a blank at night, so both cards stay one height. -->
+            <TextView
+                android:id="@+id/cardUv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="1dp"
+                android:paddingBottom="1dp"
+                android:singleLine="true"
+                android:textSize="11sp"
+                android:fontFamily="@string/font_medium"
+                android:visibility="gone" />
         </LinearLayout>
 
         <LinearLayout
@@ -52,18 +69,11 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/cardIcon"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="20sp" />
-
-            <TextView
                 android:id="@+id/cardSky"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
                 android:singleLine="true"
-                android:maxWidth="120dp"
+                android:maxWidth="130dp"
                 android:ellipsize="end"
                 android:textColor="#FFFFFFFF"
                 android:textSize="12sp"
@@ -77,6 +87,26 @@
                 android:textColor="#B3FFFFFF"
                 android:textSize="12sp"
                 android:fontFamily="@string/font_medium" />
+
+            <TextView
+                android:id="@+id/cardFeels"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textColor="#B3FFFFFF"
+                android:textSize="12sp"
+                android:fontFamily="@string/font_medium"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/cardWind"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textColor="#B3FFFFFF"
+                android:textSize="12sp"
+                android:fontFamily="@string/font_medium"
+                android:visibility="gone" />
 
             <!-- Today's rain chance and amount. -->
             <TextView
@@ -95,7 +125,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="4dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -146,8 +176,42 @@
             android:textSize="12sp"
             android:fontFamily="@string/font_medium" />
 
+        <!-- What to wear, from feels-like, rain and UV. -->
+        <TextView
+            android:id="@+id/cardWear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="1dp"
+            android:paddingBottom="1dp"
+            android:background="@drawable/weather_wear_bg"
+            android:singleLine="true"
+            android:textColor="#FFFFFFFF"
+            android:textSize="11sp"
+            android:fontFamily="@string/font_medium"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/cardBars"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="10dp"
+            android:gravity="bottom"
+            android:orientation="horizontal" />
+
         <TextView
             android:id="@+id/cardUpdated"
+            android:layout_marginStart="4dp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:singleLine="true"
@@ -155,14 +219,6 @@
             android:textSize="10sp"
             android:fontFamily="@string/font_medium" />
     </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/cardBars"
-        android:layout_width="match_parent"
-        android:layout_height="10dp"
-        android:layout_marginTop="3dp"
-        android:gravity="bottom"
-        android:orientation="horizontal" />
 
     <View
         android:layout_width="match_parent"

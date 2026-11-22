@@ -13,15 +13,16 @@ import android.net.Uri;
  * flag (for an icon), today's high and low, the next five days as "weekday,code,high,low;..." (weekday 1 =
  * Monday), the US AQI (-1 unknown), today's sunrise and sunset ("HH:mm", local to the place) and today's WMO code -
  * today's rain chance (%) and amount (mm), the next 2 hours as eight 15-minute amounts "0.0,0.4,...", and the time
- * of the reading (ms) - or no row before a city is picked. The five days carry ",chance,mm" too. Read-only.
+ * of the reading (ms), and the temperature in both °C and °F (tempc, tempf), the UV index now (uv, -1 unknown), humidity (%),
+ * wind (km/h) and the direction it blows from (degrees, -1 unknown), and feels-like in °C (feelsc) - or no row before a city is picked. The five days carry ",chance,mm" too. Read-only.
  *
  * It fetches only when asked and at most every 30 minutes (Forecast.REFRESH_MS), from the asking app's background
  * thread, so the add-on still runs no service. The query "cached" never goes online (for a settings summary).
  */
 public final class HomeProvider extends ContentProvider {
-    private static final String[] COLUMNS = {"city", "temp", "feels", "unit", "sky", "code", "day", "high", "low", "days", "aqi", "sunrise", "sunset", "todaycode", "rainchance", "rainmm", "next2h", "updated"};
+    private static final String[] COLUMNS = {"city", "temp", "feels", "unit", "sky", "code", "day", "high", "low", "days", "aqi", "sunrise", "sunset", "todaycode", "rainchance", "rainmm", "next2h", "updated", "tempc", "tempf", "uv", "humidity", "wind", "winddir", "feelsc"};
     /** Bumped when the cached fields change, so an older cache is fetched again. */
-    private static final int CACHE_VERSION = 5;
+    private static final int CACHE_VERSION = 7;
 
     @Override public boolean onCreate() {
         return true;
@@ -59,7 +60,8 @@ public final class HomeProvider extends ContentProvider {
                         .putLong("low", Double.doubleToRawLongBits(r.todayMinC))
                         .putString("days", days.toString())
                         .putInt("aqi", r.aqi).putString("sunrise", r.sunrise).putString("sunset", r.sunset)
-                        .putInt("todaycode", r.todayCode)
+                        .putInt("todaycode", r.todayCode).putInt("uv", r.uv).putInt("humidity", r.humidity)
+                        .putInt("wind", r.windKmh).putInt("winddir", r.windDir)
                         .putInt("rainchance", r.rainChance.isEmpty() ? -1 : r.rainChance.get(0)[0])
                         .putFloat("rainmm", r.rainMm.isEmpty() ? 0f : r.rainMm.get(0).floatValue())
                         .putString("next2h", android.text.TextUtils.join(",", r.next2h))
@@ -72,7 +74,7 @@ public final class HomeProvider extends ContentProvider {
         }
         if (!key.equals(cache.getString("for", ""))) {
             out.addRow(new Object[]{city, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                    null, null, null, null});
+                    null, null, null, null, null, null, null, null, null, null, null});
             return out;
         }
         boolean f = getContext().getSharedPreferences("options", 0).getBoolean("fahrenheit",
@@ -98,7 +100,10 @@ public final class HomeProvider extends ContentProvider {
                 Double.isNaN(high) ? null : Forecast.degrees(high, f), Double.isNaN(low) ? null : Forecast.degrees(low, f),
                 days.toString(), cache.getInt("aqi", -1), cache.getString("sunrise", ""),
                 cache.getString("sunset", ""), cache.getInt("todaycode", -1), cache.getInt("rainchance", -1),
-                cache.getFloat("rainmm", 0f), cache.getString("next2h", ""), cache.getLong("at", 0)});
+                cache.getFloat("rainmm", 0f), cache.getString("next2h", ""), cache.getLong("at", 0),
+                Forecast.degrees(temp, false), Forecast.degrees(temp, true), cache.getInt("uv", -1),
+                cache.getInt("humidity", -1), cache.getInt("wind", -1), cache.getInt("winddir", -1),
+                Forecast.degrees(feels, false)});
         return out;
     }
 

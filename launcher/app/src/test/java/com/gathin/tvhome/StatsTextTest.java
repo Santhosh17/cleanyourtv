@@ -3,6 +3,17 @@ import org.junit.Test;
 import java.util.Locale;
 import static org.junit.Assert.*;
 public class StatsTextTest {
+    @Test public void speedUsesOneLetterUnits() {
+        assertEquals("0K", StatsText.speed(0));
+        assertEquals("0K", StatsText.speed(300));
+        assertEquals("4K", StatsText.speed(4.3 * 1024));   // no decimal for K
+        assertEquals("85K", StatsText.speed(85 * 1024));
+        assertEquals("999K", StatsText.speed(999 * 1024));
+        assertEquals("1.0M", StatsText.speed(1023.6 * 1024));   // not "1024K"
+        assertEquals("2.4M", StatsText.speed(2.4 * 1024 * 1024));
+        assertEquals("24M", StatsText.speed(24 * 1024 * 1024));
+        assertEquals("1.1G", StatsText.speed(1.1 * 1024 * 1024 * 1024));
+    }
     @Test public void preservesEnglishExactly() {
         String text = "CPU 8%  ·  Memory 1202 MB free  ·  Storage 0.8 GB free";
         assertEquals(text, StatsText.forLocale(text, Locale.ENGLISH));
