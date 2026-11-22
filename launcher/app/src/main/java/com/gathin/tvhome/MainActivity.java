@@ -502,8 +502,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroName = findViewById(R.id.heroName);
         hero = findViewById(R.id.hero);
         weatherNow = findViewById(R.id.weatherNow);
-        weatherAnimation = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE)
-                .getBoolean(LauncherSettingsActivity.WEATHER_ANIMATION_KEY, true);
+        SharedPreferences weatherChoices = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
+        weatherAnimation = weatherChoices.getBoolean(LauncherSettingsActivity.WEATHER_ANIMATION_KEY, true);
+        boolean weatherCards = weatherChoices.getBoolean(LauncherSettingsActivity.WEATHER_CARDS_KEY, true);
+        weatherCard1On = weatherCards && weatherChoices.getBoolean(LauncherSettingsActivity.WEATHER_CARD1_KEY, true);
+        weatherCard2On = weatherCards && weatherChoices.getBoolean(LauncherSettingsActivity.WEATHER_CARD2_KEY, true);
         weatherCard1 = findViewById(R.id.weatherCard1);
         weatherCard2 = findViewById(R.id.weatherCard2);
         // The hero is now a group (name, and the cinematic lines): without this every fade of the default
@@ -2210,12 +2213,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * online at most every 30). Nothing is shown without the add-on or a city.
      */
     private void refreshWeather() {
+        if (!weatherCard1On && !weatherCard2On) return;   // both switched off: no reading, nothing shown
         long now = SystemClock.elapsedRealtime();
         if (weatherReadAt != 0 && now - weatherReadAt < 10 * MINUTE_MS) return;
         weatherReadAt = now;
         new Thread(() -> {
-            WeatherNow w = WeatherNow.read(getApplicationContext(), 1, false);
-            WeatherNow w2 = WeatherNow.read(getApplicationContext(), 2, false);
+            WeatherNow w = weatherCard1On ? WeatherNow.read(getApplicationContext(), 1, false) : null;
+            WeatherNow w2 = weatherCard2On ? WeatherNow.read(getApplicationContext(), 2, false) : null;
             handler.post(() -> showWeather(w, w2));
         }, "weather").start();
     }
@@ -2397,6 +2401,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** weather_animation (Launcher settings): the cards' weather effects, run only while the cards are on screen. */
     private boolean weatherAnimation = true;
+    /** Launcher settings > Weather: whether each card is shown; an off card is not even asked for. */
+    private boolean weatherCard1On = true, weatherCard2On = true;
 
     private void animateWeather(boolean on) {
         for (View card : new View[]{weatherCard1, weatherCard2}) {

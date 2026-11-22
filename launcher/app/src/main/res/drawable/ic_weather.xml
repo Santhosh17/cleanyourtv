@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Weather switches in Launcher settings: a sun partly behind a cloud. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M8,2h1.5v2.5H8zM2.6,6.4l1.06,-1.06 1.77,1.77 -1.06,1.06zM1,11h2.5v1.5H1zM12.06,7.11l1.77,-1.77 1.06,1.06 -1.77,1.77zM8.75,6.5c-2.35,0 -4.25,1.9 -4.25,4.25 0,1.1 0.42,2.1 1.1,2.85 0.9,-1.7 2.6,-2.9 4.6,-3.07 0.55,-0.95 1.38,-1.7 2.38,-2.15 -0.78,-1.1 -2.07,-1.88 -3.83,-1.88zM17.5,12.02c-0.43,-2.29 -2.44,-4.02 -4.85,-4.02 -1.92,0 -3.58,1.09 -4.4,2.69 -1.97,0.21 -3.5,1.88 -3.5,3.91 0,2.17 1.76,3.93 3.93,3.93h8.65c1.82,0 3.3,-1.48 3.3,-3.3 0,-1.73 -1.35,-3.13 -3.13,-3.21z" />
+</vector>

@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.ImageView;
@@ -39,6 +40,9 @@ public final class LauncherSettingsActivity extends Activity {
     static final String EXTRA_REORDER = "com.gathin.tvhome.extra.REORDER_FROM_SETTINGS";
     /** The weather cards' animated effects (rain, snow, clouds, stars...); on unless switched off here. */
     static final String WEATHER_ANIMATION_KEY = "weather_animation";
+    /** The weather cards above the dock: all of them, then each one; all on unless switched off here. */
+    static final String WEATHER_CARDS_KEY = "weather_cards", WEATHER_CARD1_KEY = "weather_card1",
+            WEATHER_CARD2_KEY = "weather_card2";
     private static final int[] DOCK_OPACITIES = {100, 70, 50, 30};
     private static final String[] CLOCK_FORMATS = {"system", "12", "24"};
 
@@ -53,11 +57,25 @@ public final class LauncherSettingsActivity extends Activity {
         IntConsumer pick;
         Runnable action;
         BooleanSupplier enabled = () -> true;
+        /** Why the row is greyed out while it is not enabled. */
+        int disabledNote = R.string.advanced_needs_animations;
         View view;
+    }
+
+    /** A page of rows under one heading; the first page lists these, OK opens one. */
+    private static final class Section {
+        String title;
+        int icon;
+        final List<Item> items = new ArrayList<>();
+        View row;
     }
 
     private SharedPreferences choices;
     private final List<Item> items = new ArrayList<>();
+    private final List<Section> sections = new ArrayList<>();
+    /** The section page on screen, or null on the first page. */
+    private Section open;
+    private TextView pageTitle;
     private LinearLayout list;
     private TextView paneTitle;
     private TextView paneDescription;
@@ -84,6 +102,7 @@ public final class LauncherSettingsActivity extends Activity {
         animations = config.animations;
         advancedEffects = config.animations && config.advancedEffects;
         list = findViewById(R.id.list);
+        pageTitle = findViewById(R.id.pageTitle);
         paneTitle = findViewById(R.id.paneTitle);
         paneDescription = findViewById(R.id.paneDescription);
         paneOptions = findViewById(R.id.paneOptions);
@@ -91,8 +110,8 @@ public final class LauncherSettingsActivity extends Activity {
         if (getResources().getBoolean(R.bool.rtl_menu_bar))
             findViewById(android.R.id.content).setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
 
-        header(R.string.settings_section_layout);
-        Item first = choice(R.drawable.ic_apps, R.string.columns_label, labels("4", "5", "6", "7"),
+        header(R.string.settings_section_layout, R.drawable.ic_apps);
+        choice(R.drawable.ic_apps, R.string.columns_label, labels("4", "5", "6", "7"),
                 () -> columns - 4, i -> {
                     columns = i + 4;
                     choices.edit().putInt("columns", columns).apply();
@@ -107,15 +126,14 @@ public final class LauncherSettingsActivity extends Activity {
                     dockOpacity = DOCK_OPACITIES[i];
                     choices.edit().putInt(Config.DOCK_OPACITY_KEY, dockOpacity).apply();
                 });
-        Item reorder = null;
         if (config.launcherSettingsButton) {
-            reorder = action(R.drawable.ic_swap_vert, R.string.reorder, getString(R.string.reorder_summary), "", () -> {
+            action(R.drawable.ic_swap_vert, R.string.reorder, getString(R.string.reorder_summary), "", () -> {
                 setResult(RESULT_OK, new Intent().putExtra(EXTRA_REORDER, true));
                 finish();
             });
         }
 
-        header(R.string.settings_section_clock);
+        header(R.string.settings_section_clock, R.drawable.ic_clock);
         choice(R.drawable.ic_clock, R.string.clock_format_label, labels(getString(R.string.clock_format_system),
                         getString(R.string.clock_format_12), getString(R.string.clock_format_24)),
                 () -> Math.max(0, java.util.Arrays.asList(CLOCK_FORMATS).indexOf(clockFormat)), i -> {
@@ -128,12 +146,24 @@ public final class LauncherSettingsActivity extends Activity {
         }
 
         if (WeatherNow.installed(this)) {
-            header(R.string.settings_section_weather);
-            weatherItem(1, R.string.weather_city_label, R.string.weather_city_description);
-            weatherItem(2, R.string.weather2_city_label, R.string.weather2_city_description);
+            header(R.string.settings_section_weather, R.drawable.ic_weather);
+            onOff(R.drawable.ic_weather, R.string.weather_cards_label, R.string.weather_cards_description, WEATHER_CARDS_KEY);
+            BooleanSupplier cardsOn = () -> choices.getBoolean(WEATHER_CARDS_KEY, true);
+            for (int slot = 1; slot <= 2; slot++) {
+                String key = slot == 1 ? WEATHER_CARD1_KEY : WEATHER_CARD2_KEY;
+                Item card = onOff(R.drawable.ic_weather, slot == 1 ? R.string.weather_card1_label : R.string.weather_card2_label,
+                        slot == 1 ? R.string.weather_card1_description : R.string.weather_card2_description, key);
+                needs(card, cardsOn, R.string.weather_needs_cards);
+                Item city = weatherItem(slot, slot == 1 ? R.string.weather_city_label : R.string.weather2_city_label,
+                        slot == 1 ? R.string.weather_city_description : R.string.weather2_city_description);
+                needs(city, () -> cardsOn.getAsBoolean() && choices.getBoolean(key, true), R.string.weather_needs_card);
+            }
+            Item weatherFx = onOff(R.drawable.ic_motion, R.string.weather_animation_label, R.string.weather_animation_description,
+                    WEATHER_ANIMATION_KEY);
+            needs(weatherFx, cardsOn, R.string.weather_needs_cards);
         }
 
-        header(R.string.settings_section_look);
+        header(R.string.settings_section_look, R.drawable.ic_picture);
         wallpaperItem();
         choice(R.drawable.ic_motion, R.string.animations_label, labels(getString(R.string.on), getString(R.string.off)),
                 () -> animations ? 0 : 1, i -> {
@@ -142,13 +172,6 @@ public final class LauncherSettingsActivity extends Activity {
                     choices.edit().putBoolean("animations", animations)
                             .putBoolean("advanced_effects", advancedEffects).apply();
                 });
-        if (WeatherNow.installed(this)) {
-            Item weatherFx = choice(R.drawable.ic_globe, R.string.weather_animation_label,
-                    labels(getString(R.string.on), getString(R.string.off)),
-                    () -> choices.getBoolean(WEATHER_ANIMATION_KEY, true) ? 0 : 1,
-                    i -> choices.edit().putBoolean(WEATHER_ANIMATION_KEY, i == 0).apply());
-            weatherFx.description = getString(R.string.weather_animation_description);
-        }
         Item advanced = choice(R.drawable.ic_motion, R.string.advanced_effects,
                 labels(getString(R.string.on), getString(R.string.off)), () -> advancedEffects ? 0 : 1, null);
         advanced.description = getString(R.string.advanced_effects_warning);
@@ -164,23 +187,91 @@ public final class LauncherSettingsActivity extends Activity {
         };
 
         if (config.openOnStartChoice) {
-            header(R.string.settings_section_startup);
+            header(R.string.settings_section_startup, R.drawable.ic_play_start);
             openOnStartItem();
         }
 
-        header(R.string.settings_section_theme);
+        header(R.string.settings_section_theme, R.drawable.ic_opacity);
         Item follow = action(R.drawable.ic_home_settings, R.string.follow_theme, null,
                 getString(R.string.follow_theme_hint), this::followTheme);
         follow.summary = () -> getString(hasOnTvChoices() ? R.string.follow_theme_off : R.string.follow_theme_on);
 
-        header(R.string.settings_section_system);
+        header(R.string.settings_section_system, R.drawable.ic_settings);
         action(R.drawable.ic_home_settings, R.string.home_settings, getString(R.string.home_settings_summary),
                 getString(R.string.home_settings_help), () -> open(new Intent(this, HomeSettingsActivity.class)));
         action(R.drawable.ic_settings, R.string.tv_settings, getString(R.string.tv_settings_summary), "",
                 () -> open(SystemSettings.intent(this, Settings.ACTION_SETTINGS)));
 
         refresh();
-        (reorder != null ? reorder : first).view.requestFocus();
+        showTop(null);
+    }
+
+    // ---- pages -----------------------------------------------------------------------------------
+
+    /** The first page: one row per section, focus on {@code focus} (the section just left) or the first. */
+    private void showTop(Section focus) {
+        open = null;
+        active = null;
+        pageTitle.setText(R.string.launcher_settings);
+        list.removeViews(1, list.getChildCount() - 1);
+        for (Section s : sections) {
+            if (s.items.isEmpty()) continue;
+            if (s.row == null) {
+                View row = getLayoutInflater().inflate(R.layout.settings_item, list, false);
+                ((ImageView) row.findViewById(R.id.icon)).setImageResource(s.icon);
+                ((TextView) row.findViewById(R.id.title)).setText(s.title);
+                List<String> titles = new ArrayList<>();
+                for (Item item : s.items) titles.add(item.title);
+                ((TextView) row.findViewById(R.id.summary)).setText(TextUtils.join(" · ", titles));
+                row.setOnFocusChangeListener((v, focused) -> {
+                    if (focused) showSectionPane(s);
+                });
+                row.setOnClickListener(v -> showSection(s));
+                row.setOnKeyListener((v, keyCode, event) -> {
+                    if (event.getAction() != KeyEvent.ACTION_DOWN || keyCode != KeyEvent.KEYCODE_DPAD_RIGHT) return false;
+                    showSection(s);
+                    return true;
+                });
+                s.row = row;
+            }
+            list.addView(s.row);
+        }
+        View first = list.getChildCount() > 1 ? list.getChildAt(1) : null;
+        View target = focus != null && focus.row != null ? focus.row : first;
+        if (target != null) target.requestFocus();
+    }
+
+    /** One section's rows, the page titled with its name. */
+    private void showSection(Section s) {
+        open = s;
+        active = null;
+        pageTitle.setText(s.title);
+        list.removeViews(1, list.getChildCount() - 1);
+        for (Item item : s.items) list.addView(item.view);
+        refresh();
+        findViewById(R.id.listScroll).scrollTo(0, 0);
+        for (Item item : s.items) {
+            if (item.enabled.getAsBoolean()) {
+                item.view.requestFocus();
+                return;
+            }
+        }
+        s.items.get(0).view.requestFocus();
+    }
+
+    /** On the first page, the right pane lists what a section holds and how each is set now. */
+    private void showSectionPane(Section s) {
+        paneTitle.setText(s.title);
+        paneTitle.setTextColor(0xFF9AA0A6);
+        StringBuilder text = new StringBuilder();
+        for (Item item : s.items) {
+            String value = item.enabled.getAsBoolean() ? item.summary.get() : getString(item.disabledNote);
+            if (text.length() > 0) text.append('\n');
+            text.append(item.title).append(value.isEmpty() ? "" : ": " + value);
+        }
+        paneDescription.setText(text);
+        paneDescription.setVisibility(View.VISIBLE);
+        paneOptions.removeAllViews();
     }
 
     // ---- building rows ---------------------------------------------------------------------------
@@ -190,10 +281,12 @@ public final class LauncherSettingsActivity extends Activity {
         return () -> l;
     }
 
-    private void header(int text) {
-        TextView h = (TextView) getLayoutInflater().inflate(R.layout.settings_header, list, false);
-        h.setText(text);
-        list.addView(h);
+    /** Starts a section: the rows added after this belong to it. */
+    private void header(int text, int icon) {
+        Section s = new Section();
+        s.title = getString(text);
+        s.icon = icon;
+        sections.add(s);
     }
 
     private Item add(Item item) {
@@ -214,7 +307,7 @@ public final class LauncherSettingsActivity extends Activity {
             return true;   // never let Right wander into the pane on its own
         });
         item.view = row;
-        list.addView(row);
+        sections.get(sections.size() - 1).items.add(item);
         items.add(item);
         return item;
     }
@@ -244,8 +337,25 @@ public final class LauncherSettingsActivity extends Activity {
         return add(item);
     }
 
+    /** An On/Off row for a boolean choice that is on unless switched off. */
+    private Item onOff(int icon, int title, int description, String key) {
+        Item item = choice(icon, title, labels(getString(R.string.on), getString(R.string.off)),
+                () -> choices.getBoolean(key, true) ? 0 : 1, i -> {
+                    choices.edit().putBoolean(key, i == 0).apply();
+                    refresh();   // rows that depend on this one grey out or come back
+                });
+        item.description = getString(description);
+        return item;
+    }
+
+    /** Greys {@code item} out, with {@code note} as the reason, while {@code enabled} is false. */
+    private static void needs(Item item, BooleanSupplier enabled, int note) {
+        item.enabled = enabled;
+        item.disabledNote = note;
+    }
+
     /** A weather city row: shows the city, OK opens the Weather app's city search for that slot. */
-    private void weatherItem(int slot, int label, int description) {
+    private Item weatherItem(int slot, int label, int description) {
         Item weather = action(R.drawable.ic_globe, label, null, getString(description), null);
         weather.summary = () -> {
             WeatherNow w = WeatherNow.read(this, slot, true);
@@ -255,6 +365,7 @@ public final class LauncherSettingsActivity extends Activity {
             changed();   // Home asks the add-on again when it comes back
             WeatherNow.pickCity(this, slot);
         };
+        return weather;
     }
 
     /** A clock slot's city row: shows the city, OK opens the picker. */
@@ -338,7 +449,7 @@ public final class LauncherSettingsActivity extends Activity {
         paneTitle.setText(item.title);
         paneTitle.setTextColor(enter ? 0xFFE8EAED : 0xFF9AA0A6);
         String description = item.description;
-        if (!item.enabled.getAsBoolean()) description = getString(R.string.advanced_needs_animations)
+        if (!item.enabled.getAsBoolean()) description = getString(item.disabledNote)
                 + (description.isEmpty() ? "" : "\n\n" + description);
         paneDescription.setText(description);
         paneDescription.setVisibility(description.isEmpty() ? View.GONE : View.VISIBLE);
@@ -399,6 +510,7 @@ public final class LauncherSettingsActivity extends Activity {
     @Override
     public void onBackPressed() {
         if (active != null) leavePane();
+        else if (open != null) showTop(open);   // a section page: back to the list of sections
         else super.onBackPressed();
     }
 
@@ -440,7 +552,7 @@ public final class LauncherSettingsActivity extends Activity {
     private void refresh() {
         for (Item item : items) {
             boolean enabled = item.enabled.getAsBoolean();
-            String summary = enabled ? item.summary.get() : getString(R.string.advanced_needs_animations);
+            String summary = enabled ? item.summary.get() : getString(item.disabledNote);
             TextView s = item.view.findViewById(R.id.summary);
             s.setText(summary);
             s.setVisibility(summary.isEmpty() ? View.GONE : View.VISIBLE);
