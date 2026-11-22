@@ -42,6 +42,11 @@ public final class QuickSettingsActivity extends Activity {
         LinearLayout rows = findViewById(R.id.rows);
         addRow(rows, R.drawable.ic_settings, R.string.tv_settings, 0, SystemSettings.intent(this, Settings.ACTION_SETTINGS));
         addRow(rows, R.drawable.ic_picture, R.string.quick_picture, 0, SystemSettings.displayIntent(this));
+        // Android TV Settings' Audio output page (TV speaker, ARC/eARC, digital out), where the firmware has it.
+        Intent audioOutput = new Intent("android.settings.AUDIO_OUTPUT_SETTINGS");
+        if (audioOutput.resolveActivity(getPackageManager()) != null) {
+            addRow(rows, R.drawable.ic_speaker, R.string.quick_audio_output, 0, audioOutput);
+        }
         addRow(rows, R.drawable.ic_wifi, R.string.quick_network, 0, SystemSettings.intent(this, Settings.ACTION_WIFI_SETTINGS));
         addRow(rows, R.drawable.ic_apps, R.string.quick_apps, R.string.quick_apps_hint,
                 SystemSettings.intent(this, Settings.ACTION_MANAGE_APPLICATIONS_SETTINGS));
