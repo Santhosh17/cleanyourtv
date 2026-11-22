@@ -10,11 +10,11 @@ import android.net.Uri;
 /**
  * The current reading for a home screen to show (content://io.github.sumyabazar1.weather.home/now, and /now2 for the
  * launcher's second weather city): one row of city, temperature, feels-like, unit, sky words, the WMO code and day
- * flag (for an icon), today's high and low, the next five days as "weekday,code,high,low;..." (weekday 1 =
+ * flag (for an icon), today's high and low, the next seven days as "weekday,code,high,low;..." (weekday 1 =
  * Monday), the US AQI (-1 unknown), today's sunrise and sunset ("HH:mm", local to the place) and today's WMO code -
  * today's rain chance (%) and amount (mm), the next 2 hours as eight 15-minute amounts "0.0,0.4,...", and the time
  * of the reading (ms), and the temperature in both °C and °F (tempc, tempf), the UV index now (uv, -1 unknown), humidity (%),
- * wind (km/h) and the direction it blows from (degrees, -1 unknown), and feels-like in °C (feelsc) - or no row before a city is picked. The five days carry ",chance,mm" too. Read-only.
+ * wind (km/h) and the direction it blows from (degrees, -1 unknown), and feels-like in °C (feelsc) - or no row before a city is picked. The seven days carry ",chance,mm" too. Read-only.
  *
  * It fetches only when asked and at most every 30 minutes (Forecast.REFRESH_MS), from the asking app's background
  * thread, so the add-on still runs no service. The query "cached" never goes online (for a settings summary).
@@ -22,7 +22,7 @@ import android.net.Uri;
 public final class HomeProvider extends ContentProvider {
     private static final String[] COLUMNS = {"city", "temp", "feels", "unit", "sky", "code", "day", "high", "low", "days", "aqi", "sunrise", "sunset", "todaycode", "rainchance", "rainmm", "next2h", "updated", "tempc", "tempf", "uv", "humidity", "wind", "winddir", "feelsc"};
     /** Bumped when the cached fields change, so an older cache is fetched again. */
-    private static final int CACHE_VERSION = 7;
+    private static final int CACHE_VERSION = 8;
 
     @Override public boolean onCreate() {
         return true;
@@ -44,9 +44,9 @@ public final class HomeProvider extends ContentProvider {
                 && System.currentTimeMillis() - cache.getLong("at", 0) < Forecast.REFRESH_MS;
         if (!fresh && !"cached".equals(selection)) {
             try {
-                Forecast.Report r = Forecast.fetch(lat, lon, Forecast.forecastDays(5));
+                Forecast.Report r = Forecast.fetch(lat, lon, Forecast.forecastDays(7));
                 StringBuilder days = new StringBuilder();
-                for (int i = 0; i < Math.min(5, r.days.size()); i++) {
+                for (int i = 0; i < Math.min(7, r.days.size()); i++) {
                     Forecast.Day d = r.days.get(i);
                     if (days.length() > 0) days.append(';');
                     days.append(d.date.getDayOfWeek().getValue()).append(',').append(d.code).append(',')

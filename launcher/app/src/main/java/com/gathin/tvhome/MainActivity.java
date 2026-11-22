@@ -518,6 +518,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cinematicWhiteFocus = cfg.cinematicWhiteFocus;
         heroArtAlpha = cfg.cinematicArt / 100f;
         if (cinematic) setUpCinematicShelf(cfg.cinematicScrim);
+        int heroSp = getResources().getInteger(R.integer.hero_name_sp);
+        if (heroSp > 0) heroName.setTextSize(TypedValue.COMPLEX_UNIT_SP, heroSp);
         // dock_title false: the name above the dock (and the cinematic lines under it) never shows; the glow
         // still follows the dock.
         if (!cfg.dockTitle) hero.setVisibility(View.GONE);

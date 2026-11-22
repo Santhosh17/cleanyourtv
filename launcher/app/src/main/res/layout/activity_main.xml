@@ -92,13 +92,13 @@
         <include
             android:id="@+id/weatherCard1"
             layout="@layout/weather_card"
-            android:layout_width="280dp"
+            android:layout_width="310dp"
             android:layout_height="wrap_content" />
 
         <include
             android:id="@+id/weatherCard2"
             layout="@layout/weather_card"
-            android:layout_width="280dp"
+            android:layout_width="310dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="20dp" />
     </LinearLayout>

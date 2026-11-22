@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- One weather card above the dock, in the shape of a medium weather widget: the city and temperature left, the
-     sky and today's high and low right, air quality and sun times, rain chance and amount, the next 2 hours, the reading time, the next five days under a line. Filled in MainActivity (fillCard). -->
+     sky and today's high and low right, air quality and sun times, rain chance and amount, the next 2 hours, the reading time, the next seven days under a line. Filled in MainActivity (fillCard). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="280dp"
+    android:layout_width="310dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@drawable/weather_card_bg"
@@ -227,7 +227,7 @@
         android:layout_marginBottom="6dp"
         android:background="#2EFFFFFF" />
 
-    <!-- The next five days: a column each (weekday, icon, high, low), added in code. -->
+    <!-- The next seven days: a column each (weekday, icon, high, low, rain chance), added in code. -->
     <LinearLayout
         android:id="@+id/cardDays"
         android:layout_width="match_parent"

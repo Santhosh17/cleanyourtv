@@ -496,6 +496,9 @@
          scrim that keeps the name readable (0 to 100 percent, 100 as before) and cinematic_art the opacity of the
          app's softened artwork (0 to 100, 50 as before; 0 leaves the wallpaper uncovered). Lower values let a
          theme's wallpaper show through. A theme can set "cinematic_scrim" and "cinematic_art". -->
+    <!-- The size of the focused dock app's name above the dock, in sp. 0 keeps the stock size (48, or 68 on the
+         cinematic shelf); smaller leaves room for the weather cards to its right. -->
+    <integer name="hero_name_sp">30</integer>
     <integer name="cinematic_scrim">100</integer>
     <integer name="cinematic_art">50</integer>
 
