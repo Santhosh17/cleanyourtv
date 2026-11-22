@@ -2428,6 +2428,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private HandlerThread statsThread;
     /** The current run's handler; a run whose handler is no longer this one stops (volatile: read off-thread). */
     private volatile Handler statsBg;
+    /** The line on screen, compared off the main thread; reset with each start. */
+    private String statsLast;
 
     private void startStats() {
         if (statsThread != null) return;
@@ -2435,6 +2437,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         cpuTotalPrev = -1;
         idlePrev = -1;
         procStatDead = false;
+        cpuIdleDead = false;
+        statsLast = null;
         netAtPrev = 0;
         statsThread = new HandlerThread("stats");
         statsThread.start();
@@ -2447,9 +2451,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             public void run() {
                 if (statsBg != bg) return;
                 String line = readStatsLine();
-                handler.post(() -> {
-                    if (showStats && stats != null && statsBg == bg) stats.setText(fullColourEmoji(line));
-                });
+                // An idle second repeats the last line: setting it again would lay the header out again for nothing.
+                if (!line.equals(statsLast)) {
+                    statsLast = line;
+                    handler.post(() -> {
+                        if (showStats && stats != null && statsBg == bg) stats.setText(fullColourEmoji(line));
+                    });
+                }
                 if (statsBg == bg) bg.postDelayed(this, getResources().getInteger(R.integer.stats_interval_ms));
             }
         });
@@ -2474,9 +2482,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private String readStatsLine() {
         int cpu = cpuPercent();
-        if (cpu < 0) {
+        if (cpu == -1) {   // a first sample: take a second one so the line already has a CPU figure
             try {
-                Thread.sleep(200);             // second sample, so the first line already has a CPU figure
+                Thread.sleep(200);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return "";
@@ -2582,7 +2590,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     // -1: need another sample. -2: this source cannot be read (Android 9 hides /proc/stat from apps).
     private static final int CPU_UNREADABLE = -2;
     private long cpuTotalPrev = -1, cpuIdlePrev = -1;
-    private boolean procStatDead;
+    private boolean procStatDead, cpuIdleDead;
     private long idlePrev = -1, wallPrev = -1;
 
     private int cpuPercent() {
@@ -2592,7 +2600,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             procStatDead = true;
             idlePrev = -1;
         }
-        return cpuFromIdle();
+        if (cpuIdleDead) return CPU_UNREADABLE;
+        int fromIdle = cpuFromIdle();
+        cpuIdleDead = fromIdle == CPU_UNREADABLE;   // neither source: stop reading files for it every second
+        return fromIdle;
     }
 
     private int cpuFromProcStat() {
@@ -2624,7 +2635,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
-    /** Busy percent from cpuidle time (microseconds) across the cores. -1 until the second sample. */
+    /** Busy percent from cpuidle time (microseconds) across the cores. -1 until the second sample; unreadable without cpuidle. */
     private int cpuFromIdle() {
         long idle = 0;
         int cores = 0;
@@ -2644,7 +2655,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (!any) break;
             cores++;
         }
-        if (cores == 0) return -1;
+        if (cores == 0) return CPU_UNREADABLE;
         long wall = SystemClock.elapsedRealtime() * 1000L;
         if (idlePrev < 0) {
             idlePrev = idle;

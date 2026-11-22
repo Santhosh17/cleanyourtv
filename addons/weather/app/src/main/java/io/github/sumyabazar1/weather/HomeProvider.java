@@ -52,7 +52,7 @@ public final class HomeProvider extends ContentProvider {
                     days.append(d.date.getDayOfWeek().getValue()).append(',').append(d.code).append(',')
                             .append(Double.doubleToRawLongBits(d.maxC)).append(',')
                             .append(Double.doubleToRawLongBits(d.minC)).append(',')
-                            .append(i + 1 < r.rainChance.size() ? r.rainChance.get(i + 1)[0] : -1).append(',')
+                            .append(i + 1 < r.rainChance.size() ? r.rainChance.get(i + 1) : -1).append(',')
                             .append(i + 1 < r.rainMm.size() ? r.rainMm.get(i + 1) : 0.0);
                 }
                 cache.edit().putString("for", key).putInt("v", CACHE_VERSION).putLong("at", System.currentTimeMillis())
@@ -62,7 +62,7 @@ public final class HomeProvider extends ContentProvider {
                         .putInt("aqi", r.aqi).putString("sunrise", r.sunrise).putString("sunset", r.sunset)
                         .putInt("todaycode", r.todayCode).putInt("uv", r.uv).putInt("humidity", r.humidity)
                         .putInt("wind", r.windKmh).putInt("winddir", r.windDir)
-                        .putInt("rainchance", r.rainChance.isEmpty() ? -1 : r.rainChance.get(0)[0])
+                        .putInt("rainchance", r.rainChance.isEmpty() ? -1 : r.rainChance.get(0))
                         .putFloat("rainmm", r.rainMm.isEmpty() ? 0f : r.rainMm.get(0).floatValue())
                         .putString("next2h", android.text.TextUtils.join(",", r.next2h))
                         .putLong("temp", Double.doubleToRawLongBits(r.tempC))

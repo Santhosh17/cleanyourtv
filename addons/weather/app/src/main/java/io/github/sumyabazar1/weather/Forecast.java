@@ -74,7 +74,7 @@ final class Forecast {
         /** Where the wind blows from, degrees clockwise from north (-1 unknown). */
         int windDir = -1;
         /** Rain chance (%, -1 unknown) and amount (mm) per day, today first; and the next 2 hours in 15-minute mm. */
-        final List<int[]> rainChance = new ArrayList<>();
+        final List<Integer> rainChance = new ArrayList<>();
         final List<Double> rainMm = new ArrayList<>();
         final List<Double> next2h = new ArrayList<>();
 
@@ -165,12 +165,14 @@ final class Forecast {
         if (!codes.isNull(0)) report.todayCode = codes.getInt(0);
         JSONArray chance = daily.optJSONArray("precipitation_probability_max"), sum = daily.optJSONArray("precipitation_sum");
         for (int i = 0; i < codes.length(); i++) {
-            report.rainChance.add(new int[]{chance == null || chance.isNull(i) ? -1 : chance.getInt(i)});
+            report.rainChance.add(chance == null || chance.isNull(i) ? -1 : chance.getInt(i));
             report.rainMm.add(sum == null || sum.isNull(i) ? 0.0 : sum.getDouble(i));
         }
         JSONObject quarter = reply.optJSONObject("minutely_15");
         JSONArray rain15 = quarter == null ? null : quarter.optJSONArray("precipitation");
-        if (rain15 != null) for (int i = 0; i < rain15.length(); i++) report.next2h.add(rain15.isNull(i) ? 0.0 : rain15.getDouble(i));
+        if (rain15 != null) {
+            for (int i = 0; i < rain15.length(); i++) report.next2h.add(rain15.isNull(i) ? 0.0 : rain15.getDouble(i));
+        }
         return report;
     }
 

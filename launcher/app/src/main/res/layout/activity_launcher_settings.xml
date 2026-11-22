@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Launcher settings in the Android TV Settings layout: grouped rows on the left, the focused row's options on the
-     right. Rows are built in LauncherSettingsActivity. -->
+<!-- Launcher settings in the Android TV Settings layout: a list of sections (or one section's rows) on the left, the
+     focused row's options on the right. Pages are built in LauncherSettingsActivity. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
+    android:baselineAligned="false"
     android:background="#FF1F2025">
 
     <ScrollView

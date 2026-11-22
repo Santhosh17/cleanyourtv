@@ -7,10 +7,10 @@ import android.text.style.ReplacementSpan;
 /** Draws "°C" (or "°F") as the degree sign with the unit letter small just under it, as one glyph. */
 final class DegreeSpan extends ReplacementSpan {
     /** The unit letter's size, of the text's. */
-    private final float LETTER;
+    private final float letterScale;
 
     DegreeSpan(float letter) {
-        LETTER = letter;
+        letterScale = letter;
     }
 
     @Override
@@ -18,7 +18,7 @@ final class DegreeSpan extends ReplacementSpan {
         if (fm != null) paint.getFontMetricsInt(fm);
         float degree = paint.measureText("°");
         float size = paint.getTextSize();
-        paint.setTextSize(size * LETTER);
+        paint.setTextSize(size * letterScale);
         float letter = paint.measureText(text, start + 1, end);
         paint.setTextSize(size);
         return Math.round(Math.max(degree, letter) + 0.04f * size);
@@ -29,12 +29,12 @@ final class DegreeSpan extends ReplacementSpan {
                      Paint paint) {
         float size = paint.getTextSize();
         float degree = paint.measureText("°");
-        paint.setTextSize(size * LETTER);
+        paint.setTextSize(size * letterScale);
         float letter = paint.measureText(text, start + 1, end);
         paint.setTextSize(size);
         float w = Math.max(degree, letter);
         canvas.drawText("°", x + (w - degree) / 2, y, paint);
-        paint.setTextSize(size * LETTER);
+        paint.setTextSize(size * letterScale);
         // the degree sign ends about 0.4 of the size above the baseline; the letter sits just under it
         canvas.drawText(text, start + 1, end, x + (w - letter) / 2, y - 0.12f * size, paint);
         paint.setTextSize(size);

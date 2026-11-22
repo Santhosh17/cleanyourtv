@@ -19,11 +19,11 @@ import java.util.Random;
 /**
  * A weather card's background in the Apple Weather manner: a gradient for the city's weather and day or night, and,
  * when animated, a light effect over it (a sun glow, twinkling stars, drifting clouds, rain, snow, lightning, mist).
- * Plain shapes only, 24 frames a second, and only between start() and stop(), which MainActivity calls while
+ * Plain shapes only, 15 frames a second, and only between start() and stop(), which MainActivity calls while
  * the cards are on screen.
  */
 final class WeatherSkyDrawable extends Drawable implements Animatable {
-    private static final long FRAME_MS = 42;   // 24 frames a second: enough for slow clouds and rain
+    private static final long FRAME_MS = 67;   // 15 frames a second: enough for slow clouds and rain, half the CPU of 24
     private static final int CLEAR = 0, CLOUDY = 1, RAIN = 2, SNOW = 3, STORM = 4, FOG = 5;
 
     private final int[] colours;
