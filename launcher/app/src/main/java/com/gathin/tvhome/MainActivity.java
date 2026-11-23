@@ -887,6 +887,16 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             showSettingsMenu();
             return true;
         });
+        expandOnFocus((TextView) btnInputs);
+        growOnFocus(btnBluetooth);
+        growOnFocus(btnWifi);
+        settingsPill = expandOnFocus((TextView) btnSettings);
+        // The remote's Settings button opens the panel over Home: the Settings pill opens with it, as if focused.
+        settingsPanelHook = shown -> handler.post(() -> {
+            btnSettings.setSelected(shown);   // white, as focused, while the panel has the focus
+            if (settingsPill != null && btnSettings.isShown()) settingsPill.accept(shown || btnSettings.hasFocus());
+        });
+        QuickSettingsActivity.homeHook = settingsPanelHook;
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
@@ -1437,6 +1447,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // This Home's pill is gone; a Home rebuilt after settings has already set its own.
+        if (QuickSettingsActivity.homeHook == settingsPanelHook) QuickSettingsActivity.homeHook = null;
         unregisterReceiver(bluetoothReceiver);
         ViewTreeObserver tree = getWindow().getDecorView().getViewTreeObserver();
         if (tree.isAlive()) tree.removeOnGlobalFocusChangeListener(glassFocusListener);
@@ -3401,6 +3413,107 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private Intent systemIntent(String standardAction) {
         return SystemSettings.intent(this, standardAction);
+    }
+
+    private static final float PILL_FOCUS_SCALE = 1.1f;
+    /** Opens (true) or closes the Settings pill as focus would; null when it only grows. */
+    private java.util.function.Consumer<Boolean> settingsPill, settingsPanelHook;
+
+    /**
+     * The top bar's pills grow 10% while focused and shrink back when focus leaves, from their centre, so
+     * nothing beside them moves. At once without animations (Animations off, or reduced motion).
+     */
+    private void growOnFocus(View pill) {
+        pill.setOnFocusChangeListener((v, focused) -> grow(v, focused));
+    }
+
+    private void grow(View pill, boolean focused) {
+        float scale = focused ? PILL_FOCUS_SCALE : 1f;
+        pill.animate().cancel();
+        if (animations && !reducedMotion) {
+            pill.animate().scaleX(scale).scaleY(scale).setDuration(150)
+                    .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+        } else {
+            pill.setScaleX(scale);
+            pill.setScaleY(scale);
+        }
+    }
+
+    /**
+     * Inputs and Settings: a round icon at rest, like the Bluetooth pill; focused, the pill widens to its word
+     * ("Inputs", "Settings"), revealed from the icon outwards, and grows like the others. The icon keeps its place:
+     * the start padding is the icon pill's in both states and the text is start-aligned. A pill already icon-only
+     * (icon_only_buttons and the like) only grows.
+     */
+    private java.util.function.Consumer<Boolean> expandOnFocus(TextView pill) {
+        CharSequence label = pill.getText();
+        if (TextUtils.isEmpty(label)) {
+            growOnFocus(pill);
+            return null;
+        }
+        int icon = Math.round(42 * density), pad = Math.round(10 * density);
+        int gap = Math.round(9 * density), endPad = Math.round(20 * density);
+        pill.setContentDescription(label);
+        pill.setSingleLine(true);
+        pill.setEllipsize(null);   // while it widens the word is cut off at the edge, not replaced by "..."
+        pill.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        pill.setMaxWidth(Integer.MAX_VALUE);
+        pill.setPaddingRelative(pad, 0, endPad, 0);
+        pill.setCompoundDrawablePadding(gap);
+        pill.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        int open = pill.getMeasuredWidth();
+        setPillWidth(pill, label, icon, false, icon, open);
+        java.util.function.Consumer<Boolean> toggle = opened -> {
+            grow(pill, opened);
+            int from = pill.getWidth() > 0 ? pill.getWidth() : (opened ? icon : open);
+            setPillWidth(pill, label, from, opened, icon, open);
+        };
+        pill.setOnFocusChangeListener((v, focused) -> toggle.accept(focused));
+        return toggle;
+    }
+
+    /** Opens ({@code open} true) or closes the pill from {@code from} px wide; the word shows only while open. */
+    private void setPillWidth(TextView pill, CharSequence label, int from, boolean opening, int icon, int open) {
+        Object running = pill.getTag(R.id.btnInputs);
+        if (running instanceof android.animation.Animator) ((android.animation.Animator) running).cancel();
+        if (opening) {
+            pill.setText(label);
+            pill.setCompoundDrawablePadding(Math.round(9 * density));
+            pill.setPaddingRelative(Math.round(10 * density), 0, Math.round(20 * density), 0);
+        }
+        int to = opening ? open : icon;
+        Runnable closed = () -> {
+            pill.setText(null);
+            pill.setCompoundDrawablePadding(0);
+            int pad = Math.round(10 * density);
+            pill.setPaddingRelative(pad, 0, pad, 0);
+        };
+        if (!animations || reducedMotion || from == to) {
+            pill.getLayoutParams().width = to;
+            pill.requestLayout();
+            if (!opening) closed.run();
+            return;
+        }
+        android.animation.ValueAnimator width = android.animation.ValueAnimator.ofInt(from, to);
+        width.setDuration(180);
+        width.setInterpolator(new android.view.animation.DecelerateInterpolator());
+        width.addUpdateListener(a -> {
+            pill.getLayoutParams().width = (int) a.getAnimatedValue();
+            pill.requestLayout();
+        });
+        width.addListener(new android.animation.AnimatorListenerAdapter() {
+            private boolean cancelled;
+
+            @Override public void onAnimationCancel(android.animation.Animator a) {
+                cancelled = true;
+            }
+
+            @Override public void onAnimationEnd(android.animation.Animator a) {
+                if (!opening && !cancelled) closed.run();
+            }
+        });
+        pill.setTag(R.id.btnInputs, width);
+        width.start();
     }
 
     /** Hides the Inputs pill when it would have nothing to list: streaming boxes have no HDMI-in, AV or tuner. */

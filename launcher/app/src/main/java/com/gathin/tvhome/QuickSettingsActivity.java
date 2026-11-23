@@ -18,6 +18,9 @@ import android.widget.Toast;
  * closes the panel.
  */
 public final class QuickSettingsActivity extends Activity {
+    /** Home's Settings pill, told when this panel opens (true) and closes (false), so it opens with it. */
+    static java.util.function.Consumer<Boolean> homeHook;
+
     @Override
     protected void attachBaseContext(android.content.Context base) {
         super.attachBaseContext(LauncherLocale.wrap(base));   // locale
@@ -28,6 +31,7 @@ public final class QuickSettingsActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         setContentView(R.layout.activity_quick_settings);
+        if (homeHook != null) homeHook.accept(true);
         if (getResources().getBoolean(R.bool.rtl_menu_bar)) {
             View panel = findViewById(R.id.panel);
             android.widget.FrameLayout.LayoutParams position =
@@ -61,7 +65,18 @@ public final class QuickSettingsActivity extends Activity {
         // Through Home, so it rebuilds with the new choices when Launcher settings closes.
         addRow(rows, R.drawable.ic_home_settings, R.string.launcher_settings, 0,
                 new Intent(this, MainActivity.class).setAction(MainActivity.ACTION_LAUNCHER_SETTINGS));
+        wrapAround(rows);
         rows.getChildAt(0).requestFocus();
+    }
+
+    /** Down on the last row goes to the first, Up on the first to the last. */
+    private static void wrapAround(LinearLayout rows) {
+        View first = rows.getChildAt(0), last = rows.getChildAt(rows.getChildCount() - 1);
+        if (first == null || first == last) return;
+        first.setId(View.generateViewId());
+        last.setId(View.generateViewId());
+        first.setNextFocusUpId(last.getId());
+        last.setNextFocusDownId(first.getId());
     }
 
     /** Settings pressed again while the panel is up. */
@@ -76,6 +91,7 @@ public final class QuickSettingsActivity extends Activity {
     @SuppressWarnings("deprecation")
     protected void onPause() {
         super.onPause();
+        if (homeHook != null) homeHook.accept(false);
         finish();
         overridePendingTransition(0, 0);
     }
