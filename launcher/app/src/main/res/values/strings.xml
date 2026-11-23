@@ -72,6 +72,11 @@
     </string-array>
     <string name="settings_section_weather" translatable="false">Weather</string>
     <string name="settings_section_screensaver" translatable="false">Screensaver</string>
+    <string name="dim_others_label" translatable="false">Dim other apps</string>
+    <string name="dim_level_label" translatable="false">Dim level</string>
+    <string name="dim_level_description" translatable="false">How bright the other tiles stay while one is focused: lower is darker, so the focused app stands out more.</string>
+    <string name="dim_level_needs" translatable="false">Turn on Dim other apps first</string>
+    <string name="dim_others_description" translatable="false">While an app tile is focused, the other tiles fade to 70 percent so the focused one stands out. They come back to full when the focus moves to the buttons at the top.</string>
     <string name="screensaver_label" translatable="false">Screensaver</string>
     <string name="screensaver_description" translatable="false">When the TV sits idle, a big clock and date with the two extra clocks from Clock, drifting slowly so nothing burns in. Any key brings back what was on screen. Off: no screensaver.</string>
     <string name="screensaver_after_label" translatable="false">Start after</string>

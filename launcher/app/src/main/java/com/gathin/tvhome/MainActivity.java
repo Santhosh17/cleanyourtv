@@ -507,6 +507,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         weatherNow = findViewById(R.id.weatherNow);
         SharedPreferences weatherChoices = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
         weatherAnimation = weatherChoices.getBoolean(LauncherSettingsActivity.WEATHER_ANIMATION_KEY, true);
+        dimOthers = weatherChoices.getBoolean(LauncherSettingsActivity.DIM_OTHERS_KEY, true);
+        dimmed = weatherChoices.getInt(LauncherSettingsActivity.DIM_LEVEL_KEY, LauncherSettingsActivity.DIM_LEVEL_DEFAULT) / 100f;
         boolean weatherCards = weatherChoices.getBoolean(LauncherSettingsActivity.WEATHER_CARDS_KEY, true);
         weatherCard1On = weatherCards && weatherChoices.getBoolean(LauncherSettingsActivity.WEATHER_CARD1_KEY, true);
         weatherCard2On = weatherCards && weatherChoices.getBoolean(LauncherSettingsActivity.WEATHER_CARD2_KEY, true);
@@ -664,6 +666,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             @Override
             public void onChildViewAttachedToWindow(@NonNull View v) {
                 v.setAlpha(tileAlpha(grid.getChildAdapterPosition(v)));
+                View card = v.findViewById(R.id.card);   // a tile scrolled in while another is focused: dimmed too
+                if (card != null) card.setAlpha(dimFocus != null && card != dimFocus ? dimmed : 1f);
             }
 
             @Override
@@ -887,16 +891,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             showSettingsMenu();
             return true;
         });
-        expandOnFocus((TextView) btnInputs);
+        inputsPill = expandOnFocus((TextView) btnInputs);
         growOnFocus(btnBluetooth);
         growOnFocus(btnWifi);
         settingsPill = expandOnFocus((TextView) btnSettings);
         // The remote's Settings button opens the panel over Home: the Settings pill opens with it, as if focused.
         settingsPanelHook = shown -> handler.post(() -> {
             btnSettings.setSelected(shown);   // white, as focused, while the panel has the focus
-            if (settingsPill != null && btnSettings.isShown()) settingsPill.accept(shown || btnSettings.hasFocus());
+            // Closing onto the pill (Up from the panel's top row): it stays open rather than closing and reopening.
+            boolean keepOpen = shown || btnSettings.hasFocus() || settingsFocusPending;
+            if (settingsPill != null && btnSettings.isShown()) settingsPill.accept(keepOpen);
         });
         QuickSettingsActivity.homeHook = settingsPanelHook;
+        settingsFocusHook = () -> settingsFocusPending = !stopped;   // over an app there is no pill to land on
+        QuickSettingsActivity.focusSettingsPill = settingsFocusHook;
 
         // Keep focus on the top bar at its ends and at the top: Android's focus finder would otherwise
         // jump to a tile far below when there is nothing in that direction.
@@ -924,7 +932,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         btnLibraryTop.setOnKeyListener(pillKeys);
         for (View button : topAppButtons) button.setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnBluetooth, btnWifi, btnVpn, btnReorder, btnLibraryTop, btnSettings));
+            // Inputs, Bluetooth, Wi-Fi and Settings have their own focus grow (growOnFocus, expandOnFocus): not replaced here.
+            List<View> pills = new ArrayList<>(Arrays.asList(btnVpn, btnReorder, btnLibraryTop));
             pills.addAll(topAppButtons);
             for (View button : pills) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
@@ -1433,22 +1442,57 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (hasFocus) {
             startPendingSettingsReorder();
             if (libraryFocusPending && appLibrary == null) focusLibrary();
+            if (settingsFocusPending) {
+                settingsFocusPending = false;
+                View pill = findViewById(R.id.btnSettings);
+                if (pill.isShown()) pill.requestFocus();
+            }
         } else {
             cancelHoldOk();   // a dialog or another window took the remote while OK was held
         }
     }
 
     /** Hides the glass when focus leaves the tiles (added in onCreate, removed in onDestroy). */
+    /** Launcher settings > Appearance > Dim other apps: the tiles around a focused one at the dim level. */
+    private boolean dimOthers;
+    /** The other tiles' brightness while dimmed (Launcher settings > Appearance > Dim level). */
+    private float dimmed = 0.7f;
+    /** The focused tile's card while the others are dimmed; null when the focus is off the tiles. */
+    private View dimFocus;
+
     private final ViewTreeObserver.OnGlobalFocusChangeListener glassFocusListener = (oldF, newF) -> {
         boolean onTile = newF != null && newF.getId() == R.id.card;
         if (!onTile) hideGlass();
+        if (dimOthers) dimTiles(onTile ? newF : null);
     };
+
+    /** Dims every tile's card but {@code focused}'s; all back to full with null. */
+    private void dimTiles(View focused) {
+        dimFocus = focused;
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            View card = grid.getChildAt(i).findViewById(R.id.card);
+            if (card == null) continue;
+            float alpha = focused == null || card == focused ? 1f : dimmed;
+            // Its own animator: card.animate() is the tile's focus zoom (AppAdapter), which cancelling would cut short.
+            Object running = card.getTag(R.id.dim_fade);
+            if (running instanceof android.animation.Animator) ((android.animation.Animator) running).cancel();
+            if (animations && !reducedMotion && card.getAlpha() != alpha) {
+                android.animation.ObjectAnimator fade = android.animation.ObjectAnimator.ofFloat(card, View.ALPHA, alpha);
+                fade.setDuration(150);
+                card.setTag(R.id.dim_fade, fade);
+                fade.start();
+            } else {
+                card.setAlpha(alpha);
+            }
+        }
+    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         // This Home's pill is gone; a Home rebuilt after settings has already set its own.
         if (QuickSettingsActivity.homeHook == settingsPanelHook) QuickSettingsActivity.homeHook = null;
+        if (QuickSettingsActivity.focusSettingsPill == settingsFocusHook) QuickSettingsActivity.focusSettingsPill = null;
         unregisterReceiver(bluetoothReceiver);
         ViewTreeObserver tree = getWindow().getDecorView().getViewTreeObserver();
         if (tree.isAlive()) tree.removeOnGlobalFocusChangeListener(glassFocusListener);
@@ -3418,6 +3462,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private static final float PILL_FOCUS_SCALE = 1.1f;
     /** Opens (true) or closes the Settings pill as focus would; null when it only grows. */
     private java.util.function.Consumer<Boolean> settingsPill, settingsPanelHook;
+    private Runnable settingsFocusHook;
+    /** Opens (true) or closes the Inputs pill as focus would; null when it only grows. */
+    private java.util.function.Consumer<Boolean> inputsPill;
+    /** The panel closed upwards: the Settings pill takes the focus when Home's window has it back. */
+    private boolean settingsFocusPending;
 
     /**
      * The top bar's pills grow 10% while focused and shrink back when focus leaves, from their centre, so
@@ -3916,6 +3965,47 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             View child = rows.getChildAt(i);
             if (child.getVisibility() == View.VISIBLE && child.isFocusable()) { child.requestFocus(); break; }
         }
+        if (!underGear) pillWhileOpen(popup, rows, anchor, inputsPill);
+    }
+
+    /**
+     * While a pill's list is open: the pill shows open and white, as if focused; Down on the last row goes to the
+     * first; Up on the first closes the list onto the pill. Back still just closes it. The rows can fold and unfold
+     * (more inputs), so the first and last are worked out at each key press.
+     */
+    private void pillWhileOpen(PopupWindow popup, LinearLayout rows, View pill, java.util.function.Consumer<Boolean> open) {
+        pill.setSelected(true);
+        if (open != null) open.accept(true);
+        boolean[] ontoPill = {false};
+        popup.setOnDismissListener(() -> {
+            if (openPopup == popup) openPopup = null;
+            pill.setSelected(false);
+            if (ontoPill[0]) {
+                pill.requestFocus();   // the focus listener keeps it open
+            } else if (open != null) {
+                open.accept(pill.hasFocus());
+            }
+        });
+        View.OnKeyListener ends = (v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+            List<View> shown = new ArrayList<>();
+            for (int i = 0; i < rows.getChildCount(); i++) {
+                View child = rows.getChildAt(i);
+                if (child.getVisibility() == View.VISIBLE && child.isFocusable()) shown.add(child);
+            }
+            if (shown.isEmpty()) return false;
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && v == shown.get(shown.size() - 1)) {
+                shown.get(0).requestFocus();
+                return true;
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP && v == shown.get(0)) {
+                ontoPill[0] = true;
+                popup.dismiss();
+                return true;
+            }
+            return false;
+        };
+        for (int i = 0; i < rows.getChildCount(); i++) rows.getChildAt(i).setOnKeyListener(ends);
     }
 
     private static void fold(View view, List<View> folded) {

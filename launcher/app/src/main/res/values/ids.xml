@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A tile card's running dim fade (MainActivity.dimTiles), kept apart from its focus zoom. -->
+    <item name="dim_fade" type="id" />
+</resources>

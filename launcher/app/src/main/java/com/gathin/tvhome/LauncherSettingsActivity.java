@@ -40,6 +40,12 @@ public final class LauncherSettingsActivity extends Activity {
     static final String EXTRA_REORDER = "com.gathin.tvhome.extra.REORDER_FROM_SETTINGS";
     /** The weather cards' animated effects (rain, snow, clouds, stars...); on unless switched off here. */
     static final String WEATHER_ANIMATION_KEY = "weather_animation";
+    /** Tiles around the focused one dimmed (MainActivity.dimTiles); on unless switched off here. */
+    static final String DIM_OTHERS_KEY = "dim_others";
+    /** How bright the other tiles stay while dimmed, in percent (MainActivity.dimTiles); 70 unless chosen here. */
+    static final String DIM_LEVEL_KEY = "dim_level";
+    static final int DIM_LEVEL_DEFAULT = 70;
+    private static final int[] DIM_LEVELS = {40, 50, 60, 70, 80, 90};
     /** The weather cards above the dock: all of them, then each one; all on unless switched off here. */
     static final String WEATHER_CARDS_KEY = "weather_cards", WEATHER_CARD1_KEY = "weather_card1",
             WEATHER_CARD2_KEY = "weather_card2";
@@ -174,6 +180,14 @@ public final class LauncherSettingsActivity extends Activity {
                     choices.edit().putBoolean("animations", animations)
                             .putBoolean("advanced_effects", advancedEffects).apply();
                 });
+        onOff(R.drawable.ic_apps, R.string.dim_others_label, R.string.dim_others_description, DIM_OTHERS_KEY);
+        List<String> levels = new ArrayList<>();
+        for (int level : DIM_LEVELS) levels.add(level + "%");
+        Item dimLevel = choice(R.drawable.ic_opacity, R.string.dim_level_label, () -> levels,
+                () -> indexOf(DIM_LEVELS, choices.getInt(DIM_LEVEL_KEY, DIM_LEVEL_DEFAULT)),
+                i -> choices.edit().putInt(DIM_LEVEL_KEY, DIM_LEVELS[i]).apply());
+        dimLevel.description = getString(R.string.dim_level_description);
+        needs(dimLevel, () -> choices.getBoolean(DIM_OTHERS_KEY, true), R.string.dim_level_needs);
         Item advanced = choice(R.drawable.ic_motion, R.string.advanced_effects,
                 labels(getString(R.string.on), getString(R.string.off)), () -> advancedEffects ? 0 : 1, null);
         advanced.description = getString(R.string.advanced_effects_warning);

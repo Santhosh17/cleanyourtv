@@ -20,6 +20,8 @@ import android.widget.Toast;
 public final class QuickSettingsActivity extends Activity {
     /** Home's Settings pill, told when this panel opens (true) and closes (false), so it opens with it. */
     static java.util.function.Consumer<Boolean> homeHook;
+    /** Up from the top row: Home puts the focus on its Settings pill once the panel has closed. */
+    static Runnable focusSettingsPill;
 
     @Override
     protected void attachBaseContext(android.content.Context base) {
@@ -69,13 +71,20 @@ public final class QuickSettingsActivity extends Activity {
         rows.getChildAt(0).requestFocus();
     }
 
-    /** Down on the last row goes to the first, Up on the first to the last. */
-    private static void wrapAround(LinearLayout rows) {
+    /** Down on the last row goes to the first; Up on the first closes the panel, back onto Home's Settings pill. */
+    private void wrapAround(LinearLayout rows) {
         View first = rows.getChildAt(0), last = rows.getChildAt(rows.getChildCount() - 1);
-        if (first == null || first == last) return;
+        if (first == null) return;
+        first.setOnKeyListener((v, keyCode, event) -> {
+            if (keyCode != android.view.KeyEvent.KEYCODE_DPAD_UP) return false;
+            if (event.getAction() == android.view.KeyEvent.ACTION_DOWN) {
+                if (focusSettingsPill != null) focusSettingsPill.run();
+                finish();
+            }
+            return true;
+        });
+        if (first == last) return;
         first.setId(View.generateViewId());
-        last.setId(View.generateViewId());
-        first.setNextFocusUpId(last.getId());
         last.setNextFocusDownId(first.getId());
     }
 
