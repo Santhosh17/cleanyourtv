@@ -117,6 +117,12 @@
     <string name="quick_picture">Display</string>
     <string name="quick_audio_output">Audio output</string>
     <string name="quick_tv_menu">TV quick menu</string>
+    <string name="quick_recent_apps">Recent apps</string>
+    <string name="recent_apps_stop">Stop</string>
+    <string name="recent_apps_close">Stop %1$s and clear its cache</string>
+    <string name="recent_apps_stopped">Stopped %1$s and cleared its cache</string>
+    <string name="recent_apps_stop_failed">Couldn\'t stop %1$s: try its App info page</string>
+    <string name="recent_apps_none">No recent apps yet: apps you open from Home show up here.</string>
     <string name="quick_network">Network</string>
     <string name="quick_apps">Apps</string>
     <string name="quick_apps_hint">Re-enable</string>

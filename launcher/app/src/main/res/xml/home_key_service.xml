@@ -2,9 +2,13 @@
 <!-- Keys only: no accessibilityEventTypes (0), so the system never calls into the launcher for
      accessibility events, which both services ignore. Key filtering depends only on
      flagRequestFilterKeyEvents and canRequestFilterKeyEvents, not on the event types.
-     stock_home_redirect is the exception: with it set, HomeKeyService adds typeWindowStateChanged at runtime. -->
+     stock_home_redirect is the exception: with it set, HomeKeyService adds typeWindowStateChanged at runtime.
+     canRetrieveWindowContent: Recent apps' Stop button (AppStopper) reads and presses TV Settings' App info page;
+     the helper looks at a window only while a Stop it was asked for runs, and only at TV Settings; flagReportViewIds lets it find
+     the rows by their ids. -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagRequestFilterKeyEvents"
+    android:accessibilityFlags="flagRequestFilterKeyEvents|flagReportViewIds"
     android:canRequestFilterKeyEvents="true"
+    android:canRetrieveWindowContent="true"
     android:description="@string/home_key_description" />

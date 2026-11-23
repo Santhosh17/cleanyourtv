@@ -231,6 +231,7 @@ public class HomeKeyService extends AccessibilityService {
             // key_filter build that also uses a window-watching redirect loses key filtering (gear/app
             // keys stop reaching the helper). Re-assert the filter flag here when key_filter is on.
             if (config.keyFilter) info.flags |= AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS;
+            info.flags |= AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS;   // AppStopper finds Settings' rows by id
             setServiceInfo(info);
         }
         if (!stockHome.isEmpty() || !powerOnLiveTv.isEmpty()) probeAtBoot();

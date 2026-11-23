@@ -100,6 +100,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private static final int LAUNCHER_SETTINGS_REQUEST = 42;
     /** Sent by QuickSettingsActivity: open Launcher settings from here so Home rebuilds when they close. */
     static final String ACTION_LAUNCHER_SETTINGS = "com.gathin.tvhome.action.LAUNCHER_SETTINGS";
+    /** The Settings panel's Recent apps row: Home shows its Recent apps list. */
+    static final String ACTION_RECENT_APPS = "com.gathin.tvhome.action.RECENT_APPS";
+    private static final int RECENT_APPS_SHOWN = 8;
     /** Sent by the "library" action word of app_keys: open the App library over Home (needs app_library). */
     static final String ACTION_APP_LIBRARY = "com.gathin.tvhome.action.APP_LIBRARY";
     /** The system input switcher, forwarded here by InputsRequestActivity while handle_view_inputs is on. */
@@ -946,7 +949,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     .build(), vpnCallback);
         }
         // Not after recreate(): the launch intent survives it and would open the settings again.
-        if (savedInstanceState == null && !openLauncherSettingsIfAsked(getIntent()) && !openLibraryIfAsked(getIntent())) {
+        if (savedInstanceState == null && !openLauncherSettingsIfAsked(getIntent()) && !openRecentAppsIfAsked(getIntent())
+                && !openLibraryIfAsked(getIntent())) {
             openInputsIfAsked(getIntent());
         }
     }
@@ -1016,6 +1020,93 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         return true;
     }
 
+    private boolean openRecentAppsIfAsked(Intent intent) {
+        if (intent == null || !ACTION_RECENT_APPS.equals(intent.getAction())) return false;
+        setIntent(new Intent(Intent.ACTION_MAIN));
+        getWindow().getDecorView().post(() -> {
+            if (!isFinishing() && !isDestroyed()) showRecentApps();
+        });
+        return true;
+    }
+
+    /**
+     * The apps last opened from Home, newest first, in a glass list under the Settings pill: icon, name and when;
+     * OK opens the app again (a running one comes back where it was). Right moves to the row's Stop button, which
+     * force-stops the app and clears its cache through TV Settings (AppStopper, by the Home-key helper), or opens
+     * its App info page without the helper. TV system apps (Live TV, Settings) have no Stop button.
+     * Apps since uninstalled or disabled are left out, and so is Home itself.
+     */
+    private void showRecentApps() {
+        PackageManager pm = getPackageManager();
+        View panel = getLayoutInflater().inflate(R.layout.popup_inputs, root, false);
+        LinearLayout rows = panel.findViewById(R.id.rows);
+        PopupWindow popup = glassPopup(panel, (int) (260 * density));
+        for (String pkg : LastOpened.recent(this)) {
+            if (rows.getChildCount() == RECENT_APPS_SHOWN) break;
+            if (pkg.equals(getPackageName())) continue;
+            if (pm.getLeanbackLaunchIntentForPackage(pkg) == null && pm.getLaunchIntentForPackage(pkg) == null) continue;
+            ApplicationInfo info;
+            try {
+                info = pm.getApplicationInfo(pkg, 0);
+            } catch (PackageManager.NameNotFoundException e) {
+                continue;
+            }
+            View row = addInputRow(rows, popup, 0, pm.getApplicationLabel(info).toString(), -1,
+                    () -> RemoteKeys.launch(this, pkg));
+            ImageView icon = row.findViewById(R.id.icon);
+            icon.setImageTintList(null);   // the app's own colours, not the menu's white
+            icon.setImageDrawable(pm.getApplicationIcon(info));
+            int size = Math.round(28 * density);
+            icon.getLayoutParams().width = size;
+            icon.getLayoutParams().height = size;
+            TextView status = row.findViewById(R.id.status);
+            status.setText(LastOpened.describe(this, LastOpened.get(this, pkg)));
+            status.setVisibility(View.VISIBLE);
+            if (info.uid >= android.os.Process.FIRST_APPLICATION_UID) addCloseButton(rows, row, popup, pkg);
+        }
+        if (rows.getChildCount() == 0) {
+            Toast.makeText(this, R.string.recent_apps_none, Toast.LENGTH_LONG).show();
+            return;
+        }
+        panel.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        popup.setWidth(Math.max((int) (260 * density), Math.min(panel.getMeasuredWidth(), (int) (420 * density))));
+        dropIn(popup, panel, findViewById(R.id.btnSettings), getResources().getBoolean(R.bool.rtl_menu_bar)
+                ? Gravity.START : Gravity.END);
+        rows.getChildAt(0).requestFocus();
+    }
+
+    /** Puts a Stop button right of a Recent apps row: it stops the app and clears its cache (AppStopper). */
+    private void addCloseButton(LinearLayout rows, View row, PopupWindow popup, String pkg) {
+        int index = rows.indexOfChild(row);
+        rows.removeView(row);
+        LinearLayout line = new LinearLayout(this);
+        line.setOrientation(LinearLayout.HORIZONTAL);
+        line.addView(row, new LinearLayout.LayoutParams(0, row.getLayoutParams().height, 1f));
+        TextView close = new TextView(this);
+        close.setText(R.string.recent_apps_stop);
+        close.setTextSize(13);
+        int pad = Math.round(14 * density);
+        close.setPadding(pad, 0, pad, 0);
+        close.setTextColor(((TextView) row.findViewById(R.id.title)).getTextColors());   // the rows' own focus colours
+        close.setGravity(Gravity.CENTER);
+        close.setBackgroundResource(R.drawable.input_row_bg);
+        close.setFocusable(true);
+        close.setClickable(true);
+        close.setContentDescription(getString(R.string.recent_apps_close, ((TextView) row.findViewById(R.id.title)).getText()));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, row.getLayoutParams().height);
+        lp.setMarginStart(Math.round(4 * density));
+        line.addView(close, lp);
+        CharSequence label = ((TextView) row.findViewById(R.id.title)).getText();
+        close.setOnClickListener(v -> {
+            popup.dismiss();
+            // Without the Home-key helper nothing can press Force stop: the App info page, to press it by hand.
+            if (!AppStopper.stop(pkg, label.toString())) {
+                open(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null)));
+            }
+        });
+        rows.addView(line, index);
+    }
+
     private boolean openLauncherSettingsIfAsked(Intent intent) {
         if (intent == null || !ACTION_LAUNCHER_SETTINGS.equals(intent.getAction())) return false;
         setIntent(new Intent(Intent.ACTION_MAIN));
@@ -1032,6 +1123,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         if (openLauncherSettingsIfAsked(intent)) return;
+        if (openRecentAppsIfAsked(intent)) return;
         if (openLibraryIfAsked(intent)) return;
         if (openInputsIfAsked(intent)) return;
         if (intent == null || !intent.hasCategory(Intent.CATEGORY_HOME)) return;

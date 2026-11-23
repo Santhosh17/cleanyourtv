@@ -41,6 +41,9 @@ public final class QuickSettingsActivity extends Activity {
         findViewById(R.id.scrim).setOnClickListener(v -> finish());
         LinearLayout rows = findViewById(R.id.rows);
         addRow(rows, R.drawable.ic_settings, R.string.tv_settings, 0, SystemSettings.intent(this, Settings.ACTION_SETTINGS));
+        // Through Home, which lists the apps it opened last (LastOpened); a TV has no recent-apps screen of its own.
+        addRow(rows, R.drawable.ic_recent, R.string.quick_recent_apps, 0,
+                new Intent(this, MainActivity.class).setAction(MainActivity.ACTION_RECENT_APPS));
         // Hisense's own horizontal quick menu (Picture, Sound, Audio Output, Sleep Timer...), where the firmware has it.
         Intent tvMenu = new Intent("com.hisense.android.tv.APPLICATION_MENU");
         if (tvMenu.resolveActivity(getPackageManager()) != null) {

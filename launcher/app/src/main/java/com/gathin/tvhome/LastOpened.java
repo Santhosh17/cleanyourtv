@@ -7,8 +7,8 @@ import android.text.format.DateUtils;
 import java.util.Locale;
 
 /**
- * When an app was last opened from Home, for the cinematic shelf's "Last opened" line: the launcher notes the
- * time whenever it opens an app. No permission and nothing read from other apps, so an app started some other
+ * When an app was last opened from Home, for the cinematic shelf's "Last opened" line and the Recent apps list:
+ * the launcher notes the time whenever it opens an app (a tile, a remote's app button, a Recent apps row). No permission and nothing read from other apps, so an app started some other
  * way (a remote's own Netflix button) shows the last time Home opened it.
  */
 final class LastOpened {
@@ -20,6 +20,24 @@ final class LastOpened {
     /** Notes that Home just opened this app. */
     static void record(Context ctx, String pkg) {
         prefs(ctx).edit().putLong(pkg, System.currentTimeMillis()).apply();
+    }
+
+    /** Every app Home has opened, most recent first. */
+    static java.util.List<String> recent(Context ctx) {
+        java.util.List<java.util.Map.Entry<String, ?>> all = new java.util.ArrayList<>(prefs(ctx).getAll().entrySet());
+        all.sort((a, b) -> Long.compare(time(b.getValue()), time(a.getValue())));
+        java.util.List<String> out = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<String, ?> e : all) out.add(e.getKey());
+        return out;
+    }
+
+    private static long time(Object value) {
+        return value instanceof Long ? (Long) value : 0L;
+    }
+
+    /** Takes an app off the Recent apps list (it was stopped from there). */
+    static void forget(Context ctx, String pkg) {
+        prefs(ctx).edit().remove(pkg).apply();
     }
 
     /** Milliseconds since the epoch, or 0 when Home never opened the app. */
