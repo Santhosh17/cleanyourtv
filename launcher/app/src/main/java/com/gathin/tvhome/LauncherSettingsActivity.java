@@ -145,6 +145,8 @@ public final class LauncherSettingsActivity extends Activity {
             cityItem(3, R.string.third_clock_label, R.string.third_clock_description, R.string.world_clock_title3);
         }
 
+        screensaverSection();
+
         if (WeatherNow.installed(this)) {
             header(R.string.settings_section_weather, R.drawable.ic_weather);
             onOff(R.drawable.ic_weather, R.string.weather_cards_label, R.string.weather_cards_description, WEATHER_CARDS_KEY);
@@ -204,6 +206,78 @@ public final class LauncherSettingsActivity extends Activity {
 
         refresh();
         showTop(null);
+    }
+
+    // ---- screensaver -----------------------------------------------------------------------------
+
+    private static final String CLOCK_DREAM = "com.gathin.tvhome/.ClockDream";
+    /** "Start after" choices, in minutes: the TV's own screensaver delay (Settings.System.SCREEN_OFF_TIMEOUT). */
+    private static final int[] DREAM_MINUTES = {5, 10, 15, 30, 60};
+
+    /**
+     * The TV's screensaver as the launcher's clock (ClockDream): on or off, and after how long. These are the TV's own
+     * settings, written with WRITE_SECURE_SETTINGS (granted by build-and-install); without it a choice says so and
+     * changes nothing.
+     */
+    private void screensaverSection() {
+        header(R.string.settings_section_screensaver, R.drawable.ic_clock);
+        Item onOff = choice(R.drawable.ic_clock, R.string.screensaver_label, labels(getString(R.string.on), getString(R.string.off)),
+                () -> clockDreamOn() ? 0 : 1, i -> {
+                    try {
+                        if (i == 0) Settings.Secure.putString(getContentResolver(), "screensaver_components", CLOCK_DREAM);
+                        Settings.Secure.putInt(getContentResolver(), "screensaver_enabled", i == 0 ? 1 : 0);
+                    } catch (SecurityException e) {
+                        Toast.makeText(this, R.string.screensaver_no_permission, Toast.LENGTH_LONG).show();
+                    }
+                    refresh();
+                });
+        onOff.description = getString(R.string.screensaver_description);
+        List<String> after = new ArrayList<>();
+        for (int m : DREAM_MINUTES) after.add(m < 60 ? getString(R.string.minutes_short, m) : getString(R.string.one_hour));
+        Item delay = choice(R.drawable.ic_motion, R.string.screensaver_after_label, () -> after, () -> {
+            int ms = Settings.System.getInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, 600_000);
+            for (int i = 0; i < DREAM_MINUTES.length; i++) if (DREAM_MINUTES[i] * 60_000 == ms) return i;
+            return -1;   // a time set elsewhere: no choice ticked until one is picked here
+        }, i -> {
+            try {
+                Settings.System.putInt(getContentResolver(), Settings.System.SCREEN_OFF_TIMEOUT, DREAM_MINUTES[i] * 60_000);
+            } catch (SecurityException e) {
+                Toast.makeText(this, R.string.screensaver_no_permission, Toast.LENGTH_LONG).show();
+            }
+        });
+        delay.description = getString(R.string.screensaver_after_description);
+        needs(delay, this::clockDreamOn, R.string.screensaver_needs_on);
+        // The TV's sleep time (Settings.Secure sleep_timeout), counted from the last key press like Start after.
+        List<String> hours = new ArrayList<>();
+        for (int h = 1; h <= 24; h++) hours.add(getResources().getQuantityString(R.plurals.hours, h, h));
+        Item off = choice(R.drawable.ic_settings, R.string.screensaver_off_label, () -> hours, () -> {
+            long ms = Settings.Secure.getLong(getContentResolver(), "sleep_timeout", -1);
+            return ms > 0 && ms % 3_600_000L == 0 && ms <= 24 * 3_600_000L ? (int) (ms / 3_600_000L) - 1 : -1;
+        }, i -> {
+            try {
+                Settings.Secure.putLong(getContentResolver(), "sleep_timeout", (i + 1) * 3_600_000L);
+            } catch (SecurityException e) {
+                Toast.makeText(this, R.string.screensaver_no_permission, Toast.LENGTH_LONG).show();
+            }
+        });
+        off.description = getString(R.string.screensaver_off_description);
+        needs(off, this::clockDreamOn, R.string.screensaver_needs_on);
+        Item preview = action(R.drawable.ic_play_start, R.string.screensaver_preview_label, null,
+                getString(R.string.screensaver_preview_description), () -> {
+                    try {
+                        startActivity(new Intent().setClassName("com.android.systemui", "com.android.systemui.Somnambulator"));
+                    } catch (ActivityNotFoundException | SecurityException e) {
+                        Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
+                    }
+                });
+        needs(preview, this::clockDreamOn, R.string.screensaver_needs_on);
+    }
+
+    /** The TV's screensaver is on and is this launcher's clock. */
+    private boolean clockDreamOn() {
+        String dream = Settings.Secure.getString(getContentResolver(), "screensaver_components");
+        return Settings.Secure.getInt(getContentResolver(), "screensaver_enabled", 0) == 1
+                && dream != null && (dream.contains(CLOCK_DREAM) || dream.contains("com.gathin.tvhome/com.gathin.tvhome.ClockDream"));
     }
 
     // ---- pages -----------------------------------------------------------------------------------

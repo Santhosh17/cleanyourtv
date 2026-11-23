@@ -21,6 +21,8 @@
     <string name="date_format">EEEE  d MMMM</string>
     <!-- Date next to the clock on Home; a locale can split it over two lines with \n. -->
     <string name="date_format_home" translatable="false">@string/date_format</string>
+    <!-- The screensaver's date, with the year: "Monday 23 November 2026". -->
+    <string name="date_format_dream" translatable="false">EEEE  d MMMM yyyy</string>
     <string name="settings_section_layout" translatable="false">Home layout</string>
     <string name="settings_section_clock" translatable="false">Clock</string>
     <string name="settings_section_look" translatable="false">Appearance</string>
@@ -69,6 +71,23 @@
         <item>Hazardous</item>
     </string-array>
     <string name="settings_section_weather" translatable="false">Weather</string>
+    <string name="settings_section_screensaver" translatable="false">Screensaver</string>
+    <string name="screensaver_label" translatable="false">Screensaver</string>
+    <string name="screensaver_description" translatable="false">When the TV sits idle, a big clock and date with the two extra clocks from Clock, drifting slowly so nothing burns in. Any key brings back what was on screen. Off: no screensaver.</string>
+    <string name="screensaver_after_label" translatable="false">Start after</string>
+    <string name="screensaver_after_description" translatable="false">How long the TV waits without a key press before the screensaver starts. This is the TV\'s own screensaver time, also in its Settings.</string>
+    <string name="screensaver_off_label" translatable="false">Turn TV off after</string>
+    <string name="screensaver_off_description" translatable="false">The TV goes to standby after this long without a key press; until then the clock screensaver shows. Counted from the last key press, so with Start after 10 minutes and 1 hour here, the clock shows for about 50 minutes. Playing video keeps the TV on.</string>
+    <plurals name="hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <string name="screensaver_preview_label" translatable="false">Preview</string>
+    <string name="screensaver_preview_description" translatable="false">Starts the screensaver now. Press any key to come back.</string>
+    <string name="screensaver_needs_on" translatable="false">Turn on Screensaver first</string>
+    <string name="screensaver_no_permission" translatable="false">The launcher may not change this TV setting: run the install script again with the Home key helper on</string>
+    <string name="minutes_short" translatable="false">%1$d minutes</string>
+    <string name="one_hour" translatable="false">1 hour</string>
     <string name="weather_cards_label" translatable="false">Weather cards</string>
     <string name="weather_cards_description" translatable="false">The weather cards above the dock on Home. Off hides both, and Home stops asking the Weather app for weather, so it goes online less. The country flag in the stats line keeps working.</string>
     <string name="weather_card1_label" translatable="false">First card</string>

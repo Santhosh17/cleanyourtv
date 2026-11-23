@@ -106,6 +106,11 @@ final class WorldClock {
         return slot == 2 ? base : base + slot;
     }
 
+    /** A slot's saved timezone, "UTC" until a city is picked. */
+    static String zone(android.content.Context context, int slot) {
+        return context.getSharedPreferences(PREFS, Activity.MODE_PRIVATE).getString(key("zone", slot), "UTC");
+    }
+
     /** A slot's saved city name, "UTC" until one is picked. */
     static String cityName(android.content.Context context, int slot) {
         return context.getSharedPreferences(PREFS, Activity.MODE_PRIVATE).getString(key("name", slot), "UTC");
